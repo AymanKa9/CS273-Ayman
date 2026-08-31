@@ -1,4 +1,3 @@
-# CS273-Ayman
 CS-273 Semester Project Fall 2026  
 **Student Name:** Ayman Kaouch  
 **Course:** CS273- Database Systems  
