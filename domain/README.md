@@ -1,6 +1,7 @@
 ##Mission Statement
 To store player ID, tournament structure, match outcomes, handicap and Fargo-Rating for competitive pool events.
 
+
 ##Mission Objectives
 Maintain accurate player identity and contact records.
 Track player Fargo Ratings and game total indicators.
