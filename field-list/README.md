@@ -1,40 +1,35 @@
+| # | Field Name | Description |
+|---|---|---|
+| 1 | Player ID | Unique number for each player |
+| 2 | First Name | Player's first name |
+| 3 | Last Name | Player's last name |
+| 4 | Email | Player's email address |
+| 5 | Phone Number | Player's phone number |
+| 6 | Date Joined | Date the player joined |
+| 7 | Fargo Rating | Player's current Fargo rating score |
+| 8 | Fargo Games Played | Number of games used for Fargo rating |
+| 9 | 8-Ball Skill Level | Handicap rating for 8-Ball |
+| 10 | 9-Ball Skill Level | Handicap rating for 9-Ball |
+| 11 | Game Type | Type of game (8-Ball, 9-Ball, 10-Ball) |
+| 12 | Match ID | Unique number for the match |
+| 13 | Match Date | Date and time match was played |
+| 14 | Location | Pool hall or venue name |
+| 15 | Table Size | Size of table (7-foot, 9-foot) |
+| 16 | Player 1 ID | ID of the first player |
+| 17 | Player 2 ID | ID of the second player |
+| 18 | Player 1 Handicap | Handicap points given to Player 1 |
+| 19 | Player 2 Handicap | Handicap points given to Player 2 |
+| 20 | Target Score | Number of games needed to win |
+| 21 | Rack ID | Unique number for each rack played |
+| 22 | Rack Winner | ID of player who won the rack |
+| 23 | Player 1 Score | Total racks won by Player 1 |
+| 24 | Player 2 Score | Total racks won by Player 2 |
+| 25 | Match Winner ID | ID of the player who won the match |
 
+## Calculated Field List
 
-| Field Name | Description |
-| :--- | :--- |
-| `user_id` | Unique identifier assigned to each registered user account. |
-| `first_name` | The user's given first name. |
-| `last_name` | The user's family or surname. |
-| `email_address` | The primary contact and login email for the account. |
-| `password_hash` | The securely hashed version of the user's account password. |
-| `phone_number` | Contact phone number for the user or customer. |
-| `created_at` | Timestamp indicating when the record was created in the system. |
-| `updated_at` | Timestamp recording the last time the record was modified. |
-| `is_active` | Boolean flag indicating whether the account/record is active or soft-deleted. |
-| `street_address` | Physical street address line for billing or shipping. |
-| `city` | City associated with the physical address. |
-| `state_province` | State, province, or region associated with the address. |
-| `postal_code` | ZIP or postal code for location routing. |
-| `country` | Country code or name associated with the address. |
-| `item_id` | Unique identifier assigned to a specific catalog item or product. |
-| `item_name` | The title or short name of the product or service. |
-| `item_description` | Detailed text describing the features or details of an item. |
-| `unit_price` | Base cost charged per single unit of an item. |
-| `quantity_in_stock` | Current physical count of units available in inventory. |
-| `reorder_threshold` | Minimum inventory quantity that triggers a restock alert. |
-| `order_id` | Unique identifier for a customer transaction or order. |
-| `order_date` | Date and time when an order was placed. |
-| `order_status` | Current stage of processing (e.g., Pending, Shipped, Delivered, Cancelled). |
-| `quantity_ordered` | Number of units purchased for a given line item. |
-| `discount_amount` | Fixed dollar amount or percentage deducted from a transaction. |
-
----
-
-## Calculated Fields 
-
-| Calculated Value | Derivation Formula / Description |
-| :--- | :--- |
-| **Line Item Total** | Calculated by multiplying `quantity_ordered` by `unit_price`. |
-| **Order Subtotal** | Sum of all `Line Item Total` values associated with a specific `order_id`. |
-| **Final Order Total** | Calculated as `Order Subtotal` minus `discount_amount` plus applicable taxes/shipping fees. |
-| **Account Age** | Derived by subtracting `created_at` date from the current system date (`CURRENT_DATE - created_at`). |
+| # | Calculated Field | Description / Formula |
+|---|---|---|
+| 1 | Win/Loss Ratio | Matches Won divided by Total Matches Played |
+| 2 | Rating Difference | Player 1 Rating minus Player 2 Rating |
+| 3 | Score Difference | Player 1 Final Score minus Player 2 Final Score |
