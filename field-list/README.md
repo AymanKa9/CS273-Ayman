@@ -4,8 +4,8 @@ Represents individual pool players participating in matches, separated to isolat
 | Field Name | Field Status / Type | Description |
 | :--- | :--- | :--- |
 | `player_id` | Clean | Primary key uniquely identifying each player |
-| `first_name` | Multipart (Fixed) | Split from `player_name` into distinct first name field |
-| `last_name` | Multipart (Fixed) | Split from `player_name` into distinct last name field |
+| `first_name` | Multipart  | Split from `player_name` into distinct first name field |
+| `last_name` | Multipart  | Split from `player_name` into distinct last name field |
 | `fargo_rating` | Clean | Current Fargo rating score |
 | `phone_number` | Clean | Primary contact phone number |
 | `email` | Clean | Primary email address |
