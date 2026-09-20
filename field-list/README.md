@@ -3,7 +3,7 @@
 ## Refined Field List by Table
 
 ### Players Table
-* **Subject Description:** Represents individual pool players participating in matches; separated to isolate player profile and contact data from match events.
+Represents individual pool players participating in matches; separated to isolate player profile and contact data from match events.
 
 | Field Name | Data Type | Description |
 | :--- | :--- | :--- |
