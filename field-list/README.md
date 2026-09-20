@@ -3,7 +3,7 @@
 ## Refined Field List by Table
 
 ### Players Table
-Represents individual pool players participating in matches; separated to isolate player profile and contact data from match events.
+Represents individual pool players participating in matches, separated to isolate player profile and contact data from match events.
 
 | Field Name | Data Type | Description |
 | :--- | :--- | :--- |
@@ -15,7 +15,7 @@ Represents individual pool players participating in matches; separated to isolat
 | `email` | VARCHAR(100) | Primary email address |
 
 ### Formats Table
-* **Subject Description:** Represents official game rulesets (e.g., 8-Ball, 9-Ball); separated so multiple matches can share standardized rules without duplicating descriptions.
+Represents official game rulesets (e.g., 8-Ball, 9-Ball); separated so multiple matches can share rules without duplicating descriptions.
 
 | Field Name | Data Type | Description |
 | :--- | :--- | :--- |
@@ -24,7 +24,7 @@ Represents individual pool players participating in matches; separated to isolat
 | `rules_summary` | TEXT | Brief overview of specific format rules |
 
 ### Matches Table
-* **Subject Description:** Represents the event details of a specific pool session; separated to isolate location and timing from player performance.
+Represents the event details of a specific pool session, separated to isolate location and timing from player performance.
 
 | Field Name | Data Type | Description |
 | :--- | :--- | :--- |
@@ -34,7 +34,7 @@ Represents individual pool players participating in matches; separated to isolat
 | `location` | VARCHAR(100) | Venue where the match occurred |
 
 ### Player_Matches Table
-* **Subject Description:** Represents a player's individual performance within a specific match; separated to resolve the many-to-many relationship between players and matches.
+Represents a player's individual performance within a specific match, separated to resolve the many-to-many relationship between players and matches.
 
 | Field Name | Data Type | Description |
 | :--- | :--- | :--- |
