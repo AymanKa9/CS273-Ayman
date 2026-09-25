@@ -18,7 +18,7 @@
 | Field Name | Data Type  | Null Support  | Default Value | Constraints / Range |
 | :--- | :--- | :--- | :--- | :--- | 
 | `format_id` | `INT`  | Not Null  | None | PK, Auto-increment |
-| `format_name` | `VARCHAR`  | Not Nulls  | None | AK, Unique format title |
+| `format_name` | `VARCHAR`  | Not Null  | None | AK, Unique format title |
 | `rules_summary`| `TEXT`  | Null  | `NULL` | Descriptive text |
 
 ---
