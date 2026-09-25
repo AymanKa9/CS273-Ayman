@@ -1,43 +1,47 @@
-### Players Table
-Represents individual pool players participating in matches, separated to isolate player profile and contact data from match events.
+# Database Field List & Key Specifications
 
-| Field Name | Field Status / Type | Description |
-| :--- | :--- | :--- |
-| `player_id` | Clean | Primary key uniquely identifying each player |
-| `first_name` | Multipart  | Split from `player_name` into distinct first name field |
-| `last_name` | Multipart  | Split from `player_name` into distinct last name field |
-| `fargo_rating` | Clean | Current Fargo rating score |
-| `phone_number` | Clean | Primary contact phone number |
-| `email` | Clean | Primary email address |
 
-### Formats Table
-Represents official game rulesets (e.g., 8-Ball, 9-Ball), separated so multiple matches can share rules without duplicating descriptions.
+### Field Specifications
+| Field Name | Data Type | Length | Null Support | Required? | Default Value | Constraints / Range |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `player_id` | `INT` | 11 | No Nulls | Yes | None | PK, Auto-increment |
+| `first_name` | `VARCHAR` | 50 | No Nulls | Yes | None | Alphabetic characters only |
+| `last_name` | `VARCHAR` | 50 | No Nulls | Yes | None | Alphabetic characters only |
+| `fargo_rating` | `INT` | 11 | Nulls Allowed | No | `NULL` | Range: 100 to 900 |
+| `phone_number`| `VARCHAR` | 20 | Nulls Allowed | No | `NULL` | AK, Standard phone format |
+| `email` | `VARCHAR` | 100| Nulls Allowed | No | `NULL` | AK, Valid email format |
 
-| Field Name | Field Status / Type | Description |
-| :--- | :--- | :--- |
-| `format_id` | Clean | Primary key for game format |
-| `format_name` | Clean | Game format type |
-| `rules_summary` | Clean | Brief overview of specific format rules |
+---
 
-### Matches Table
-Represents the event details of a specific pool session, separated to isolate location and timing from player performance.
 
-| Field Name | Field Status / Type | Description |
-| :--- | :--- | :--- |
-| `match_id` | Clean | Primary key for a played match |
-| `match_date` | Clean | Date the match took place |
-| `format_id` | Clean | Foreign key linking to the game format |
-| `location` | Clean | Venue where the match occurred |
+### Field Specifications
+| Field Name | Data Type | Length | Null Support | Required? | Default Value | Constraints / Range |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `format_id` | `INT` | 11 | No Nulls | Yes | None | PK, Auto-increment |
+| `format_name` | `VARCHAR` | 50 | No Nulls | Yes | None | AK, Unique format title |
+| `rules_summary`| `TEXT` | N/A | Nulls Allowed | No | `NULL` | Descriptive text |
 
-### Player_Matches Table
-Represents a player's individual performance within a specific match, separated to resolve the relationship between players and matches.
+---
 
-| Field Name | Field Status / Type | Description |
-| :--- | :--- | :--- |
-| `player_match_id` | Clean | Primary key for player-match mapping |
-| `match_id` | Clean | Foreign key linking to the match |
-| `player_id` | Clean | Foreign key linking to the player |
-| `handicap_at_match` | Clean | Player's handicap rating at time of match |
-| `games_won` | Clean | Number of games won in the match |
-| `games_lost` | Clean | Number of games lost in the match |
-| `is_winner` | Clean | Indicates if player won the overall match |
+
+### Field Specifications
+| Field Name | Data Type | Length | Null Support | Required? | Default Value | Constraints / Range |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `match_id` | `INT` | 11 | No Nulls | Yes | None | PK, Auto-increment |
+| `match_date` | `DATETIME`| N/A | No Nulls | Yes | CURRENT_TIMESTAMP | Valid timestamp |
+| `format_id` | `INT` | 11 | No Nulls | Yes | None | FK reference to Formats |
+| `location` | `VARCHAR` | 100| No Nulls | Yes | None | Venue name/address |
+
+---
+
+
+### Field Specifications
+| Field Name | Data Type | Length | Null Support | Required? | Default Value | Constraints / Range |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `player_match_id`| `INT` | 11 | No Nulls | Yes | None | PK, Auto-increment |
+| `match_id` | `INT` | 11 | No Nulls | Yes | None | FK reference to Matches |
+| `player_id` | `INT` | 11 | No Nulls | Yes | None | FK reference to Players |
+| `handicap_at_match`| `INT` | 11 | No Nulls | Yes | None | Range: 0 to 1000 |
+| `games_won` | `INT` | 11 | No Nulls | Yes | `0` | Range: >= 0 |
+| `games_lost` | `INT` | 11 | No Nulls | Yes | `0` | Range: >= 0 |
+| `is_winner` | `BOOLEAN` | N/A | No Nulls | Yes | `FALSE` | True/False (1 or 0) |
