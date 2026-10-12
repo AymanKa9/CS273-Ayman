@@ -3,7 +3,9 @@
 **Project:** Pool League Fargo Rating Tracker
 **Student:** Ayman Kaouch · CS 273 Database Systems · Fall 2026
 
-The diagram is in [`diagram.drawio`](diagram.drawio) (open it at [app.diagrams.net](https://app.diagrams.net)). It uses crow's foot notation and shows all 7 tables, every primary and foreign key, the type of every relationship, and the participation (mandatory / optional) on both ends.
+![ERD](erd.png)
+
+The draw.io source is [`erd.drawio`](erd.drawio) (open it at [app.diagrams.net](https://app.diagrams.net)). `diagram.drawio` is the same file under the name the Phase 3 assignment used. It uses crow's foot notation and shows all 7 tables, every primary and foreign key, the type of every relationship, and the participation (mandatory / optional) on both ends.
 
 ---
 
@@ -80,3 +82,12 @@ A close second was the **handicap**. Phase 2 had a `handicap_at_match` number fr
 5. **Removed `games_lost`** from Player_Matches. It always equals the opponent's `games_won`, so storing it twice could make the two values disagree.
 6. **Added `UNIQUE (match_id, player_id)`** to Player_Matches so a player cannot appear twice in one match.
 7. **Smaller field fixes:** names now allow spaces, hyphens and apostrophes; phone is no longer a unique key (family members can share one); `match_date` no longer defaults to the current time, because matches are scheduled ahead.
+
+---
+
+## 5. What I would add or change with more time
+
+1. **Enforce exactly two players per match.** Crow's foot can show "one or many" Player_Matches per match, but not "exactly two." I would add a check (a trigger or a rule in the PHP app) that blocks a match from being completed without two Player_Matches rows, and one that makes sure exactly one of them has `is_winner = TRUE`.
+2. **A `Venues` table.** `location` is free text in both Matches and Tournaments, so "Joe's Billiards" and "Joes Billiards" would count as two places. A Venues table with a FK from both would fix that and let me store how many tables each venue has.
+3. **Teams and Seasons.** Real pool leagues are usually played by teams over a season. That would add Teams, Seasons, and a linking table for Players ⟷ Teams (a player can change teams between seasons), which is another M:N to resolve.
+4. **Check that `games_won` never exceeds `race_to`.** This is a cross-column rule that belongs in the Phase 4 schema as a `CHECK` constraint.
