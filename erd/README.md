@@ -5,7 +5,7 @@
 
 ![ERD](erd.png)
 
-The draw.io source is [`erd.drawio`](erd.drawio) (open it at [app.diagrams.net](https://app.diagrams.net)). `diagram.drawio` is the same file under the name the Phase 3 assignment used. It uses crow's foot notation and shows all 7 tables, every primary and foreign key, the type of every relationship, and the participation (mandatory / optional) on both ends.
+The draw.io source is [`erd.drawio`](erd.drawio) (open it at [app.diagrams.net](https://app.diagrams.net)). It uses crow's foot notation and shows all 7 tables, every primary and foreign key, the type of every relationship, and the participation (mandatory / optional) on both ends.
 
 ---
 
