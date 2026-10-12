@@ -33,11 +33,12 @@ A game type the league plays (8-Ball, 9-Ball, 10-Ball) and its rules.
 ---
 
 ## Table 3: `Matches`
-One scheduled match: when, where, on which table, and in which format.
+One scheduled match: when, where, on which table, in which format, and (optionally) in which tournament.
 
 | Field Name | Data Type | Null Support | Default Value | Constraints / Range |
 | :--- | :--- | :--- | :--- | :--- |
 | `match_id` | `INT` | Not Null | None | PK, auto-increment |
+| `tournament_id` | `INT` | Null | `NULL` | FK → `Tournaments.tournament_id`; `NULL` = regular league match |
 | `format_id` | `INT` | Not Null | None | FK → `Formats.format_id` |
 | `match_date` | `DATETIME` | Not Null | None | Valid date and time of the match |
 | `location` | `VARCHAR(100)` | Not Null | None | Venue name/address |
@@ -53,11 +54,52 @@ One player's participation and result in one match. A normal match has two rows 
 | `player_match_id` | `INT` | Not Null | None | PK, auto-increment |
 | `match_id` | `INT` | Not Null | None | FK → `Matches.match_id` |
 | `player_id` | `INT` | Not Null | None | FK → `Players.player_id` |
-| `rating_at_match` | `INT` | Null | `NULL` | Range 100–900; player's Fargo Rating when the match started |
 | `race_to` | `INT` | Not Null | None | Range 1–15; games this player needs to win (their handicap) |
 | `games_won` | `INT` | Not Null | `0` | Range 0 to `race_to` |
 | `is_winner` | `BOOLEAN` | Not Null | `FALSE` | True/False (1 or 0) |
 | — | — | — | — | UQ (`match_id`, `player_id`): a player appears once per match |
+
+---
+
+## Table 5: `Tournaments`
+A tournament event that groups a set of matches.
+
+| Field Name | Data Type | Null Support | Default Value | Constraints / Range |
+| :--- | :--- | :--- | :--- | :--- |
+| `tournament_id` | `INT` | Not Null | None | PK, auto-increment |
+| `tournament_name` | `VARCHAR(100)` | Not Null | None | Event title |
+| `start_date` | `DATE` | Not Null | None | Valid date |
+| `end_date` | `DATE` | Null | `NULL` | ≥ `start_date`; `NULL` = one-day or ongoing |
+| `location` | `VARCHAR(100)` | Not Null | None | Venue name/address |
+
+---
+
+## Table 6: `Handicap_Chart` (lookup table)
+The race each player gets, based on the rating gap between two opponents, for each format.
+
+| Field Name | Data Type | Null Support | Default Value | Constraints / Range |
+| :--- | :--- | :--- | :--- | :--- |
+| `chart_id` | `INT` | Not Null | None | PK, auto-increment |
+| `format_id` | `INT` | Not Null | None | FK → `Formats.format_id` |
+| `min_gap` | `INT` | Not Null | None | Range ≥ 0 |
+| `max_gap` | `INT` | Not Null | None | ≥ `min_gap` |
+| `higher_race` | `INT` | Not Null | None | Range 1–15; race for the higher-rated player |
+| `lower_race` | `INT` | Not Null | None | Range 1–15; race for the lower-rated player |
+| — | — | — | — | UQ (`format_id`, `min_gap`): no overlapping rows per format |
+
+---
+
+## Table 7: `Rating_History`
+One row each time a player's Fargo Rating changes, so growth can be tracked over time.
+
+| Field Name | Data Type | Null Support | Default Value | Constraints / Range |
+| :--- | :--- | :--- | :--- | :--- |
+| `history_id` | `INT` | Not Null | None | PK, auto-increment |
+| `player_id` | `INT` | Not Null | None | FK → `Players.player_id` |
+| `match_id` | `INT` | Null | `NULL` | FK → `Matches.match_id`; `NULL` = manual adjustment |
+| `old_rating` | `INT` | Null | `NULL` | Range 100–900; `NULL` = first rating |
+| `new_rating` | `INT` | Not Null | None | Range 100–900 |
+| `changed_at` | `DATETIME` | Not Null | `CURRENT_TIMESTAMP` | Valid timestamp |
 
 ---
 
@@ -71,6 +113,8 @@ One player's participation and result in one match. A normal match has two rows 
 | Removed `CURRENT_TIMESTAMP` default on `match_date` | Matches are scheduled ahead of time, so "now" is the wrong default |
 | Added `table_number` to `Matches` | Mission objectives promise table assignments, but no field stored them |
 | Replaced `handicap_at_match` (0–1000) with `race_to` (1–15) | In Fargo handicapping the handicap *is* the race: a lower-rated player races to fewer games. A 0–1000 number has no clear meaning |
-| Added `rating_at_match` | Mission objectives promise pre-match rating history; the current rating in `Players` is overwritten after every match |
 | Removed `games_lost` | It is always the opponent's `games_won`, so storing it twice risks the two values disagreeing |
 | Added UQ (`match_id`, `player_id`) | Stops the same player from being entered twice in one match |
+| Added `Tournaments` table and `Matches.tournament_id` | Mission objectives promise tournament management, but there was no table for it |
+| Added `Handicap_Chart` lookup table | The domain says races are set from a lookup table based on rating gaps |
+| Added `Rating_History` table | The current rating in `Players` is overwritten after every match, so past ratings were lost; the mission promises historical rating tracking |

@@ -3,7 +3,7 @@
 **Project:** Pool League Fargo Rating Tracker
 **Student:** Ayman Kaouch · CS 273 Database Systems · Fall 2026
 
-The diagram is in [`diagram.drawio`](diagram.drawio) (open it at [app.diagrams.net](https://app.diagrams.net)). It uses crow's foot notation and shows every table, its primary key, its foreign keys, each relationship's type (1:1, 1:N, M:N) and the participation (mandatory / optional) on both ends.
+The diagram is in [`diagram.drawio`](diagram.drawio) (open it at [app.diagrams.net](https://app.diagrams.net)). It uses crow's foot notation and shows all 7 tables, every primary and foreign key, the type of every relationship, and the participation (mandatory / optional) on both ends.
 
 ---
 
@@ -11,55 +11,72 @@ The diagram is in [`diagram.drawio`](diagram.drawio) (open it at [app.diagrams.n
 
 | Table | Real-world concept |
 | :--- | :--- |
-| **Players** | A person registered in the league. Holds who they are (name, phone, email) and their current Fargo Rating, the number that measures their skill level. |
-| **Formats** | A type of game that can be played, such as 8-Ball, 9-Ball or 10-Ball, with a short summary of its rules. It is a lookup table so the same format name is never typed two different ways. |
-| **Matches** | One scheduled match: when it happened, where it was played, and which format it used. A match by itself does not say who played; that is stored in Player_Matches. |
-| **Player_Matches** | One player's participation in one match. A normal match produces two rows here, one per player, each holding that player's handicap for the match, games won, games lost, and whether they won. This is the linking table that resolves the M:N relationship between Players and Matches. |
+| **Players** | A person registered in the league: name, contact info, and their *current* Fargo Rating (the number that measures skill). |
+| **Formats** | A game type the league plays, such as 8-Ball, 9-Ball or 10-Ball, with a summary of its rules. |
+| **Tournaments** | A tournament event (name, dates, venue) that groups a set of matches. |
+| **Matches** | One scheduled match: when and where it is played, the table number, the format, and the tournament it belongs to (if any). |
+| **Player_Matches** | One player's result in one match: the race they had to reach (their handicap), the games they won, and whether they won. A normal match has two rows. This is the linking table for Players ⟷ Matches. |
+| **Handicap_Chart** | The league's handicap chart. For each format and each range of rating gaps, it says how many games the higher-rated and the lower-rated player must win. |
+| **Rating_History** | A log entry every time a player's Fargo Rating changes, with the old and new rating and the match that caused it. |
 
 ---
 
 ## 2. Relationships and why each has its type
 
 ### Players ⟷ Matches — **M:N**, resolved by `Player_Matches`
-A player plays many matches over a season, and every match has more than one player (two in a normal match). Neither side can hold a single foreign key to the other, so the relationship is many-to-many. A relational database cannot store M:N directly, so it is split into two 1:N relationships through the linking table **Player_Matches**.
+A player plays many matches over a season, and every match has more than one player (two in a normal match). Neither table can hold a single FK to the other, so this is many-to-many, which a relational database cannot store directly. It is split into two 1:N relationships through **Player_Matches**.
+**If modeled differently:** a `player_id` in Matches would allow only one player per match, and a `match_id` in Players would let a player play only one match ever.
 
-**If modeled differently:** Putting a `player_id` in Matches would only allow one player per match. Putting a `match_id` in Players would let a player play only one match ever. Both are wrong for a league.
+### Players → Player_Matches — **1:N** (Players mandatory one · Player_Matches optional many)
+Each Player_Matches row is about exactly one player (`player_id` NOT NULL), but one player has many match rows. A player can have zero rows if they just signed up.
+**If modeled differently:** as 1:1, a player could only ever record one match. If Player_Matches were mandatory, a new player could not be added until they had already played.
 
-### Players → Player_Matches — **1:N**
-- **Players side: mandatory one.** Every Player_Matches row must belong to exactly one player (`player_id` is a NOT NULL FK). A result with no player is meaningless.
-- **Player_Matches side: optional many.** A player can have zero rows here (someone who just signed up and has not played yet) or many.
+### Matches → Player_Matches — **1:N** (Matches mandatory one · Player_Matches mandatory many)
+Each row belongs to exactly one match (`match_id` NOT NULL), and one match has several player rows (two in practice). A match without players makes no sense, so both sides are mandatory.
+**If modeled differently:** as 1:1, a match could store only one player's score, so the opponent's race and result would have nowhere to go. `UNIQUE (match_id, player_id)` stops the same player being entered twice in one match.
 
-**Why 1:N:** One player appears in many match rows, but each match row is about one player. **If modeled as 1:1**, a player could only ever have one match recorded and their win history would be lost. **If the participation were mandatory on the Player_Matches side**, the database could not add a new player until they had already played, which does not match how league signup works.
+### Formats → Matches — **1:N** (Formats mandatory one · Matches optional many)
+A format like 9-Ball is used by many matches, but one match is played under exactly one format (`format_id` NOT NULL). A format can exist before anyone plays it.
+**If modeled differently:** as M:N, one match could be "8-Ball and 9-Ball at once", which makes the race and handicap meaningless. Storing the format as free text in Matches would let typos like "9 ball" vs "9-Ball" split the statistics.
 
-### Matches → Player_Matches — **1:N**
-- **Matches side: mandatory one.** Every Player_Matches row belongs to exactly one match (`match_id` is a NOT NULL FK).
-- **Player_Matches side: mandatory many (one or more).** A match has to have players; in practice it has exactly two rows.
+### Tournaments → Matches — **1:N** (Tournaments optional one · Matches optional many)
+A tournament contains many matches, but a match belongs to at most one tournament. The FK `tournament_id` is **nullable** because regular weekly league matches are not part of any tournament, and a tournament can be created before its matches are scheduled.
+**If modeled differently:** making `tournament_id` NOT NULL would force fake tournaments for every league night. Making it M:N would let one match count in two tournaments, double-counting results.
 
-**Why 1:N:** One match has several player rows, but each row is about a single match. **If modeled as 1:1**, a match could only store one player's score, so the opponent's score and handicap would have nowhere to go and you could never compare the two players. The `UNIQUE (match_id, player_id)` constraint stops the same player being entered twice in the same match.
+### Formats → Handicap_Chart — **1:N** (Formats mandatory one · Handicap_Chart optional many)
+Each chart row belongs to one format, because races differ between games (a 9-Ball race is not the same as an 8-Ball race). One format has many rows, one per rating-gap range.
+**If modeled differently:** without the `format_id` FK there could only be one chart for every game type. `UNIQUE (format_id, min_gap)` stops two overlapping rows from giving two different races for the same gap.
+Handicap_Chart is not linked to Matches or Players by a FK. It is a **lookup table**: the app computes the gap between the two players' ratings and selects the row where the gap falls between `min_gap` and `max_gap`. That race is then saved into `Player_Matches.race_to`, so changing the chart later does not rewrite old matches.
 
-### Formats → Matches — **1:N**
-- **Formats side: mandatory one.** Every match is played under exactly one format (`format_id` is NOT NULL).
-- **Matches side: optional many.** A format can exist with zero matches (for example 10-Ball added to the list before anyone plays it) or be used by many matches.
+### Players → Rating_History — **1:N** (Players mandatory one · Rating_History optional many)
+A player's rating changes many times, and each change is about one player (`player_id` NOT NULL). A new player has no history yet.
+**If modeled differently:** storing only `Players.fargo_rating` (as in Phase 2) overwrites the old value after every match, so growth over time is lost. As 1:1, only one change could ever be stored.
 
-**Why 1:N:** A format like 9-Ball is reused across hundreds of matches, but a single match only uses one format. **If modeled as M:N**, a match could be "8-Ball and 9-Ball at the same time", which makes no sense for one match and would make race-to and handicap rules ambiguous. **If the format were stored as free text inside Matches** instead of a FK, typos like "9 ball" vs "9-Ball" would split the statistics.
+### Matches → Rating_History — **1:N** (Matches optional one · Rating_History optional many)
+A completed match causes rating changes for both players, so one match can have several history rows. The FK `match_id` is **nullable** because a director can also adjust a rating manually (for example, a player's first established rating), with no match involved.
+**If modeled differently:** making `match_id` NOT NULL would block manual adjustments. Leaving out the FK entirely would make it impossible to tell which match caused a rating to rise or fall.
 
 ---
 
 ## 3. Hardest relationship to figure out
 
-The hardest one was **how players connect to matches**. My first idea was to give the Matches table two columns, `player1_id` and `player2_id`, because a pool match is usually two people. That looked simpler, but it caused problems:
+The hardest one was **how players connect to matches**. Because a pool match is usually two people, the obvious idea is to give Matches two columns, `player1_id` and `player2_id`. That causes problems:
 
-- Each player has their *own* handicap, games won and games lost for that match. With two player columns I would need `player1_handicap`, `player2_handicap`, `player1_games_won`, and so on, which is a repeating group.
-- Finding "all matches for player 7" would need `WHERE player1_id = 7 OR player2_id = 7` everywhere, and stats queries become awkward.
-- It cannot handle formats with more than two players or a bye.
+- Each player has their *own* race and games won, so the table would need `player1_race`, `player2_race`, `player1_games_won`, and so on, which is a repeating group.
+- Finding all matches for one player would need `WHERE player1_id = 7 OR player2_id = 7` in every query.
 
-I resolved it by treating it as a true **M:N** relationship and moving everything that belongs to *one player in one match* into the linking table **Player_Matches**. Now every per-player value lives in one row, finding a player's history is one simple join, and the composite unique key `(match_id, player_id)` prevents duplicates.
+I resolved it by treating it as a true **M:N** relationship and moving everything that belongs to *one player in one match* into the linking table **Player_Matches**. A player's full history is now one simple join, and the composite unique key `(match_id, player_id)` prevents duplicates.
+
+A close second was the **handicap**. Phase 2 had a `handicap_at_match` number from 0 to 1000, but in Fargo leagues the handicap *is* the race to a number of games. It became `race_to` in Player_Matches, with the rules stored separately in the Handicap_Chart lookup table.
 
 ---
 
 ## 4. Changes from the Phase 2 field list
 
-1. **Named the tables.** The Phase 2 field list had four field tables without titles. In the ERD they are named **Players, Formats, Matches, Player_Matches** so the foreign keys clearly point somewhere.
-2. **Added a composite unique constraint `UNIQUE (match_id, player_id)` to Player_Matches.** Drawing the linking table showed that nothing stopped the same player from being entered twice for one match. The surrogate key `player_match_id` stays as the PK, and the pair becomes an alternate key.
-3. **Added VARCHAR lengths** (for example `first_name VARCHAR(50)`) so the diagram is ready to turn into SQL in Phase 4.
-4. **Deferred for later phases:** my domain description also mentions tournaments, a handicap lookup table based on rating gaps, and a rating-history log. These are not in the Phase 2 field list, so they are not in this ERD yet. They would each connect as 1:N relationships (Tournaments → Matches, Players → Rating_History) and can be added when the schema is built.
+1. **Named every table** (Players, Formats, Matches, Player_Matches) and added `VARCHAR` lengths so the ERD is ready for SQL in Phase 4.
+2. **Added three tables** my mission statement already promised but the field list did not have: **Tournaments**, **Handicap_Chart** and **Rating_History**. Drawing the ERD made it obvious that objectives like "manage tournament parameters," "handicap lookup thresholds" and "log pre-match and post-match rating updates" had no tables behind them.
+3. **Added `tournament_id` (nullable FK) to Matches** to connect matches to tournaments, and **`table_number`** to cover the "table assignments" objective.
+4. **Replaced `handicap_at_match` (0–1000) with `race_to` (1–15)**, as explained above.
+5. **Removed `games_lost`** from Player_Matches. It always equals the opponent's `games_won`, so storing it twice could make the two values disagree.
+6. **Added `UNIQUE (match_id, player_id)`** to Player_Matches so a player cannot appear twice in one match.
+7. **Smaller field fixes:** names now allow spaces, hyphens and apostrophes; phone is no longer a unique key (family members can share one); `match_date` no longer defaults to the current time, because matches are scheduled ahead.
