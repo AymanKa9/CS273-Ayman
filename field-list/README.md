@@ -56,7 +56,6 @@ One player's participation and result in one match. A normal match has two rows 
 | `player_id` | `INT` | Not Null | None | FK → `Players.player_id` |
 | `race_to` | `INT` | Not Null | None | Range 1–15; games this player needs to win (their handicap) |
 | `games_won` | `INT` | Not Null | `0` | Range 0 to `race_to` |
-| `is_winner` | `BOOLEAN` | Not Null | `FALSE` | True/False (1 or 0) |
 | — | — | — | — | UQ (`match_id`, `player_id`): a player appears once per match |
 
 ---
@@ -118,3 +117,4 @@ One row each time a player's Fargo Rating changes, so growth can be tracked over
 | Added `Tournaments` table and `Matches.tournament_id` | Mission objectives promise tournament management, but there was no table for it |
 | Added `Handicap_Chart` lookup table | The domain says races are set from a lookup table based on rating gaps |
 | Added `Rating_History` table | The current rating in `Players` is overwritten after every match, so past ratings were lost; the mission promises historical rating tracking |
+| Removed `is_winner` from `Player_Matches` (after Phase 3 feedback) | The winner is the player whose `games_won = race_to`, so storing it could disagree with the score |

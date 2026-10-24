@@ -17,7 +17,7 @@ The draw.io source is [`erd.drawio`](erd.drawio) (open it at [app.diagrams.net](
 | **Formats** | A game type the league plays, such as 8-Ball, 9-Ball or 10-Ball, with a summary of its rules. |
 | **Tournaments** | A tournament event (name, dates, venue) that groups a set of matches. |
 | **Matches** | One scheduled match: when and where it is played, the table number, the format, and the tournament it belongs to (if any). |
-| **Player_Matches** | One player's result in one match: the race they had to reach (their handicap), the games they won, and whether they won. A normal match has two rows. This is the linking table for Players ⟷ Matches. |
+| **Player_Matches** | One player's result in one match: the race they had to reach (their handicap) and the games they won. The winner is whoever reached their race (`games_won = race_to`). A normal match has two rows. This is the linking table for Players ⟷ Matches. |
 | **Handicap_Chart** | The league's handicap chart. For each format and each range of rating gaps, it says how many games the higher-rated and the lower-rated player must win. |
 | **Rating_History** | A log entry every time a player's Fargo Rating changes, with the old and new rating and the match that caused it. |
 
@@ -87,7 +87,14 @@ A close second was the **handicap**. Phase 2 had a `handicap_at_match` number fr
 
 ## 5. What I would add or change with more time
 
-1. **Enforce exactly two players per match.** Crow's foot can show "one or many" Player_Matches per match, but not "exactly two." I would add a check (a trigger or a rule in the PHP app) that blocks a match from being completed without two Player_Matches rows, and one that makes sure exactly one of them has `is_winner = TRUE`.
+1. **Enforce exactly two players per match.** Crow's foot can show "one or many" Player_Matches per match, but not "exactly two." I would add a check (a trigger or a rule in the PHP app) that blocks a match from being completed without two Player_Matches rows, and that only one player reaches their race.
 2. **A `Venues` table.** `location` is free text in both Matches and Tournaments, so "Joe's Billiards" and "Joes Billiards" would count as two places. A Venues table with a FK from both would fix that and let me store how many tables each venue has.
 3. **Teams and Seasons.** Real pool leagues are usually played by teams over a season. That would add Teams, Seasons, and a linking table for Players ⟷ Teams (a player can change teams between seasons), which is another M:N to resolve.
-4. **Check that `games_won` never exceeds `race_to`.** This is a cross-column rule that belongs in the Phase 4 schema as a `CHECK` constraint.
+4. **Check that `games_won` never exceeds `race_to`.** This is a cross-column rule that belongs in the Phase 4 schema as a `CHECK` constraint (done in `schema/schema.sql`).
+
+---
+
+## Changes after Phase 3 feedback
+
+- **Removed `is_winner` from Player_Matches.** The winner can be worked out from the data (`games_won = race_to`), so storing it could disagree with the score. This is the same reason `games_lost` was removed.
+- **Added relationship verb labels** to every line in the ERD (for example, Players *plays in* Player_Matches).

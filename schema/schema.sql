@@ -96,6 +96,8 @@ CREATE TABLE Matches (
 -- ---------------------------------------------------------------------
 -- 5. Player_Matches — linking table that resolves Players M:N Matches.
 --    One row per player per match (two rows in a normal match).
+--    No is_winner column (removed after Phase 3 feedback): the winner is
+--    the player whose games_won = race_to, so storing it would duplicate data.
 -- ---------------------------------------------------------------------
 CREATE TABLE Player_Matches (
   player_match_id  INT      NOT NULL AUTO_INCREMENT,
@@ -103,7 +105,6 @@ CREATE TABLE Player_Matches (
   player_id        INT      NOT NULL,
   race_to          TINYINT  NOT NULL,                 -- this player's handicap race
   games_won        TINYINT  NOT NULL DEFAULT 0,
-  is_winner        BOOLEAN  NOT NULL DEFAULT FALSE,
 
   CONSTRAINT pk_player_matches PRIMARY KEY (player_match_id),
   CONSTRAINT uq_player_matches_match_player UNIQUE (match_id, player_id),
