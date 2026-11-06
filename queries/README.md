@@ -22,23 +22,22 @@ Run order: `schema/schema.sql` → `data/test_data.sql` → `queries/queries.sql
 
 **Q5 — Handicap check.** Answers *"store handicap lookup thresholds based on rating differentials."* Player_Matches and Players are joined twice, once for each opponent, to compute the rating gap. Handicap_Chart is then joined on `format_id` and on the gap falling between `min_gap` and `max_gap`. It confirms every race followed the chart. Unrated players (match 6) are left out because there is no gap to look up, and the query uses current ratings rather than ratings at match time.
 
-## Phase 5B — Aggregate & subquery queries
+## Phase 5B
 
-| Query | Technique |
-| --- | --- |
-| Q6 | GROUP BY + COUNT, AVG |
-| Q7 | GROUP BY + SUM + HAVING |
-| Q8 | Subquery in WHERE + AVG |
-| Q9 | GROUP BY + COUNT, MIN, MAX |
-| Q10 | Correlated subquery in SELECT + subquery in WHERE |
+| Query | Mission objective | Tables | Functions | Type |
+| --- | --- | --- | --- | --- |
+| Q6 | Manage formats and game types | Formats, Matches, Player_Matches | COUNT, AVG | GROUP BY, 3-table aggregate |
+| Q7 | Track game total indicators | Players, Player_Matches | COUNT, SUM | GROUP BY + HAVING |
+| Q8 | Track game total indicators | Players, Player_Matches | SUM, AVG | GROUP BY + HAVING with scalar subquery |
+| Q9 | Record match schedules and table assignments | Tournaments, Matches | COUNT, MIN, MAX | LEFT JOIN + aggregate (zero counts) |
+| Q10 | Log rating updates | Rating_History, Players (+ Player_Matches, Matches in subquery) | COUNT, MIN, MAX | GROUP BY + IN subquery |
 
-**Q6 — Activity per format.** Answers *"manage tournament parameters including formats and game types."* GROUP BY collapses every match into one row per format, so COUNT and AVG can summarize each game type. 9-Ball is by far the most played format (5 of 8 matches) and has the longest average race (5.1 games).
+**Q6 — Activity per format.** GROUP BY turns every match into one row per format so COUNT and AVG can summarize each game type. 9-Ball is the most played format (5 of 8 matches) and has the longest average race (5.1 games).
 
-**Q7 — Winning players.** Answers *"track player Fargo Ratings and game total indicators."* SUM counts wins per player, and HAVING keeps only players with 2 or more wins. WHERE can't do this, because the win count only exists after grouping. Nadia Rahimi and Sara Bennett are undefeated (2–0).
+**Q7 — Players with 2+ wins.** SUM counts each player's wins, and HAVING keeps players with at least 2. WHERE can't do this, because the win count only exists after grouping. Nadia Rahimi and Sara Bennett are undefeated (2–0).
 
-**Q8 — Above-average players.** Answers *"maintain accurate player identity and contact records"* by ranking the roster. The subquery calculates the league average (534, unrated players ignored) so the outer query can compare each player against it without hard-coding a number. Nadia, Grace and Omar are the strongest players in the league.
+**Q8 — Above-average game totals.** The subquery calculates the average total games won per player (8.9), so HAVING compares each player to the current average instead of a hard-coded number. Omar, Grace and Nadia win the most games.
 
-**Q9 — Venue usage.** Answers *"record individual match schedules, table assignments."* GROUP BY location with COUNT, MIN and MAX shows how busy each venue is and its date range. Cue Masters hosts most matches (5) on only 2 tables, while Rack Room spreads 3 matches over 3 tables.
+**Q9 — Tournament workload.** A LEFT JOIN keeps tournaments with no matches, and COUNT(m.match_id) returns 0 for them instead of dropping them. The Fall 9-Ball Open used 4 matches on 2 tables, and the Halloween Classic has nothing scheduled yet.
 
-**Q10 — Rating growth.** Answers *"log pre-match and post-match rating updates to preserve historical rating accuracy."* A correlated subquery finds each player's first recorded rating, and a WHERE subquery keeps only players with history. Sara Bennett improved the most (+20), while Omar Haddad dropped 12 points.
-
+**Q10 — Rating ranges of tournament players.** The IN subquery finds every player who played a tournament match, and GROUP BY summarizes their rating history. Grace Kim had the most updates (4) and has dropped from her 618 high, while Sara Bennett is at her highest rating (450).

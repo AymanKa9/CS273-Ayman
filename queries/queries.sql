@@ -100,12 +100,15 @@ ORDER BY m.match_id;
 
 -- =====================================================================
 -- Phase 5B — Aggregate & Subquery Queries
+-- All five use GROUP BY. Q7 and Q8 use HAVING, Q8 and Q10 use subqueries,
+-- Q9 is a LEFT JOIN + aggregate that shows zero counts.
 -- =====================================================================
 
 
 -- Q6: For each game format, how many matches were played and what was
 --     the average race and average games won?
---     (GROUP BY + COUNT, AVG)
+--     Mission objective: Manage tournament parameters including formats and game types.
+--     (3-table aggregate · GROUP BY · COUNT, AVG)
 SELECT f.format_name,
        COUNT(DISTINCT m.match_id)  AS matches_played,
        ROUND(AVG(pm.race_to), 2)   AS avg_race,
@@ -118,7 +121,8 @@ ORDER BY matches_played DESC;
 
 
 -- Q7: Which players have won at least 2 matches?
---     (GROUP BY + SUM + HAVING)
+--     Mission objective: Track player Fargo Ratings and game total indicators.
+--     (GROUP BY · COUNT, SUM · HAVING)
 SELECT CONCAT(p.first_name, ' ', p.last_name)                     AS player,
        COUNT(*)                                                   AS matches_played,
        SUM(CASE WHEN pm.games_won = pm.race_to THEN 1 ELSE 0 END) AS matches_won
@@ -129,42 +133,56 @@ HAVING SUM(CASE WHEN pm.games_won = pm.race_to THEN 1 ELSE 0 END) >= 2
 ORDER BY matches_won DESC, player;
 
 
--- Q8: Which players are rated above the league's average Fargo Rating?
---     (subquery in WHERE + AVG)
-SELECT CONCAT(first_name, ' ', last_name) AS player,
-       fargo_rating
-FROM Players
-WHERE fargo_rating > (SELECT AVG(fargo_rating) FROM Players)
-ORDER BY fargo_rating DESC;
+-- Q8: Which players have won more total games than the average player?
+--     Mission objective: Track player Fargo Ratings and game total indicators.
+--     (GROUP BY · SUM, AVG · HAVING with a scalar subquery)
+SELECT CONCAT(p.first_name, ' ', p.last_name) AS player,
+       p.fargo_rating,
+       SUM(pm.games_won)                       AS total_games_won
+FROM Players p
+INNER JOIN Player_Matches pm ON pm.player_id = p.player_id
+GROUP BY p.player_id, p.first_name, p.last_name, p.fargo_rating
+HAVING SUM(pm.games_won) > (
+    SELECT AVG(player_total)
+    FROM (SELECT SUM(games_won) AS player_total
+          FROM Player_Matches
+          GROUP BY player_id) AS totals
+)
+ORDER BY total_games_won DESC;
 
 
--- Q9: For each venue, how many matches were scheduled, how many tables
---     were used, and when were the first and last matches?
---     (GROUP BY + COUNT, MIN, MAX)
-SELECT location,
-       COUNT(*)                     AS matches_scheduled,
-       COUNT(DISTINCT table_number) AS tables_used,
-       MIN(match_date)              AS first_match,
-       MAX(match_date)              AS last_match
-FROM Matches
-GROUP BY location
-ORDER BY matches_scheduled DESC;
+-- Q9: How many matches has each tournament scheduled, on how many tables,
+--     including tournaments with no matches yet?
+--     Mission objective: Record individual match schedules and table assignments.
+--     (LEFT JOIN + aggregate · GROUP BY · COUNT, MIN, MAX · shows zero counts)
+SELECT t.tournament_name,
+       t.start_date,
+       COUNT(m.match_id)              AS matches_scheduled,
+       COUNT(DISTINCT m.table_number) AS tables_used,
+       MIN(m.match_date)              AS first_match,
+       MAX(m.match_date)              AS last_match
+FROM Tournaments t
+LEFT JOIN Matches m ON m.tournament_id = t.tournament_id
+GROUP BY t.tournament_id, t.tournament_name, t.start_date
+ORDER BY t.start_date;
 
 
--- Q10: How much has each player's rating grown since their first
---      recorded rating?
---      (correlated subquery in SELECT + subquery in WHERE)
-SELECT player, starting_rating, current_rating,
-       current_rating - starting_rating AS rating_growth
-FROM (
-    SELECT CONCAT(p.first_name, ' ', p.last_name) AS player,
-           p.fargo_rating AS current_rating,
-           (SELECT rh.new_rating
-              FROM Rating_History rh
-             WHERE rh.player_id = p.player_id
-             ORDER BY rh.changed_at
-             LIMIT 1) AS starting_rating
-    FROM Players p
-    WHERE p.player_id IN (SELECT player_id FROM Rating_History)
-) AS growth
-ORDER BY rating_growth DESC;
+-- Q10: For players who have competed in a tournament, how many rating
+--      updates have they had, and what were their lowest and highest ratings?
+--      Mission objective: Log pre-match and post-match rating updates.
+--      (GROUP BY · COUNT, MIN, MAX · subquery with IN)
+SELECT CONCAT(p.first_name, ' ', p.last_name) AS player,
+       COUNT(*)           AS rating_updates,
+       MIN(rh.new_rating) AS lowest_rating,
+       MAX(rh.new_rating) AS highest_rating,
+       p.fargo_rating     AS current_rating
+FROM Rating_History rh
+INNER JOIN Players p ON p.player_id = rh.player_id
+WHERE rh.player_id IN (
+    SELECT pm.player_id
+    FROM Player_Matches pm
+    INNER JOIN Matches m ON m.match_id = pm.match_id
+    WHERE m.tournament_id IS NOT NULL
+)
+GROUP BY p.player_id, p.first_name, p.last_name, p.fargo_rating
+ORDER BY rating_updates DESC, player;
