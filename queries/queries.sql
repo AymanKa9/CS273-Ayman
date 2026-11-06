@@ -96,3 +96,75 @@ INNER JOIN Players lp         ON lp.player_id = lpm.player_id
 INNER JOIN Handicap_Chart hc  ON hc.format_id = m.format_id
                              AND hp.fargo_rating - lp.fargo_rating BETWEEN hc.min_gap AND hc.max_gap
 ORDER BY m.match_id;
+
+
+-- =====================================================================
+-- Phase 5B — Aggregate & Subquery Queries
+-- =====================================================================
+
+
+-- Q6: For each game format, how many matches were played and what was
+--     the average race and average games won?
+--     (GROUP BY + COUNT, AVG)
+SELECT f.format_name,
+       COUNT(DISTINCT m.match_id)  AS matches_played,
+       ROUND(AVG(pm.race_to), 2)   AS avg_race,
+       ROUND(AVG(pm.games_won), 2) AS avg_games_won
+FROM Formats f
+INNER JOIN Matches m         ON m.format_id = f.format_id
+INNER JOIN Player_Matches pm ON pm.match_id = m.match_id
+GROUP BY f.format_id, f.format_name
+ORDER BY matches_played DESC;
+
+
+-- Q7: Which players have won at least 2 matches?
+--     (GROUP BY + SUM + HAVING)
+SELECT CONCAT(p.first_name, ' ', p.last_name)                     AS player,
+       COUNT(*)                                                   AS matches_played,
+       SUM(CASE WHEN pm.games_won = pm.race_to THEN 1 ELSE 0 END) AS matches_won
+FROM Players p
+INNER JOIN Player_Matches pm ON pm.player_id = p.player_id
+GROUP BY p.player_id, p.first_name, p.last_name
+HAVING SUM(CASE WHEN pm.games_won = pm.race_to THEN 1 ELSE 0 END) >= 2
+ORDER BY matches_won DESC, player;
+
+
+-- Q8: Which players are rated above the league's average Fargo Rating?
+--     (subquery in WHERE + AVG)
+SELECT CONCAT(first_name, ' ', last_name) AS player,
+       fargo_rating
+FROM Players
+WHERE fargo_rating > (SELECT AVG(fargo_rating) FROM Players)
+ORDER BY fargo_rating DESC;
+
+
+-- Q9: For each venue, how many matches were scheduled, how many tables
+--     were used, and when were the first and last matches?
+--     (GROUP BY + COUNT, MIN, MAX)
+SELECT location,
+       COUNT(*)                     AS matches_scheduled,
+       COUNT(DISTINCT table_number) AS tables_used,
+       MIN(match_date)              AS first_match,
+       MAX(match_date)              AS last_match
+FROM Matches
+GROUP BY location
+ORDER BY matches_scheduled DESC;
+
+
+-- Q10: How much has each player's rating grown since their first
+--      recorded rating?
+--      (correlated subquery in SELECT + subquery in WHERE)
+SELECT player, starting_rating, current_rating,
+       current_rating - starting_rating AS rating_growth
+FROM (
+    SELECT CONCAT(p.first_name, ' ', p.last_name) AS player,
+           p.fargo_rating AS current_rating,
+           (SELECT rh.new_rating
+              FROM Rating_History rh
+             WHERE rh.player_id = p.player_id
+             ORDER BY rh.changed_at
+             LIMIT 1) AS starting_rating
+    FROM Players p
+    WHERE p.player_id IN (SELECT player_id FROM Rating_History)
+) AS growth
+ORDER BY rating_growth DESC;
