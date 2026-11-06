@@ -31,6 +31,8 @@ Run order: `schema/schema.sql` → `data/test_data.sql` → `queries/queries.sql
 | Q8 | Track game total indicators | Players, Player_Matches | SUM, AVG | GROUP BY + HAVING with scalar subquery |
 | Q9 | Record match schedules and table assignments | Tournaments, Matches | COUNT, MIN, MAX | LEFT JOIN + aggregate (zero counts) |
 | Q10 | Log rating updates | Rating_History, Players (+ Player_Matches, Matches in subquery) | COUNT, MIN, MAX | GROUP BY + IN subquery |
+| Q11 | Track player Fargo Ratings | Players | AVG | Scalar subquery in WHERE |
+| Q12 | Maintain player records | Players, Player_Matches (subquery) | — | NOT IN subquery |
 
 **Q6 — Activity per format.** GROUP BY turns every match into one row per format so COUNT and AVG can summarize each game type. 9-Ball is the most played format (5 of 8 matches) and has the longest average race (5.1 games).
 
@@ -41,3 +43,8 @@ Run order: `schema/schema.sql` → `data/test_data.sql` → `queries/queries.sql
 **Q9 — Tournament workload.** A LEFT JOIN keeps tournaments with no matches, and COUNT(m.match_id) returns 0 for them instead of dropping them. The Fall 9-Ball Open used 4 matches on 2 tables, and the Halloween Classic has nothing scheduled yet.
 
 **Q10 — Rating ranges of tournament players.** The IN subquery finds every player who played a tournament match, and GROUP BY summarizes their rating history. Grace Kim had the most updates (4) and has dropped from her 618 high, while Sara Bennett is at her highest rating (450).
+
+**Q11 — Above-average ratings.** The inner query returns one value, the league's average rating (534, unrated players ignored), and the outer query keeps players above it. Nadia (700), Grace (610) and Omar (600) are the strongest players.
+
+**Q12 — Players who never played.** The inner query lists every player_id that appears in Player_Matches, and NOT IN keeps the players who aren't in that list. Emma Cole signed up but hasn't played, so the league can contact her using the email and phone shown.
+

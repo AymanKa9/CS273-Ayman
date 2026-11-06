@@ -10,6 +10,7 @@ USE FargoLeague;
 
 
 -- Q1: What was the final score of every match, who played, and who won?
+--     Mission objective: Record individual match schedules, table assignments, and final scores.
 --     (INNER JOIN · 4 tables)
 SELECT m.match_id,
        m.match_date,
@@ -28,6 +29,7 @@ ORDER BY m.match_date, m.match_id, result DESC;
 
 -- Q2: How has each player's Fargo Rating changed over time, and which
 --     match (or manual adjustment) caused each change?
+--     Mission objective: Log pre-match and post-match rating updates.
 --     (INNER JOIN + LEFT JOIN · 4 tables)
 SELECT CONCAT(p.first_name, ' ', p.last_name) AS player,
        rh.changed_at,
@@ -45,6 +47,7 @@ ORDER BY player, rh.changed_at;
 
 -- Q3: How many matches and games has every player won, including
 --     players who have not played yet?
+--     Mission objective: Track player Fargo Ratings and game total indicators.
 --     (LEFT JOIN)
 SELECT CONCAT(p.first_name, ' ', p.last_name) AS player,
        p.fargo_rating,
@@ -59,6 +62,7 @@ ORDER BY matches_won DESC, total_games_won DESC, player;
 
 -- Q4: What is the schedule of every tournament: dates, game type and
 --     table assignments?
+--     Mission objective: Manage tournament parameters including formats and game types.
 --     (INNER JOIN · 3 tables)
 SELECT t.tournament_name,
        m.match_date,
@@ -73,6 +77,7 @@ ORDER BY t.tournament_name, m.match_date, m.table_number;
 
 -- Q5: For every match between two rated players, does each player's race
 --     match what the Handicap_Chart says for their rating gap?
+--     Mission objective: Store handicap lookup thresholds based on rating differentials.
 --     (INNER JOIN · 6 joins; Player_Matches and Players joined twice)
 SELECT m.match_id,
        f.format_name,
@@ -100,8 +105,8 @@ ORDER BY m.match_id;
 
 -- =====================================================================
 -- Phase 5B — Aggregate & Subquery Queries
--- All five use GROUP BY. Q7 and Q8 use HAVING, Q8 and Q10 use subqueries,
--- Q9 is a LEFT JOIN + aggregate that shows zero counts.
+-- Q6–Q10 use GROUP BY. Q7 and Q8 use HAVING. Q9 is a LEFT JOIN + aggregate
+-- that shows zero counts. Q8, Q10, Q11 and Q12 use subqueries.
 -- =====================================================================
 
 
@@ -186,3 +191,24 @@ WHERE rh.player_id IN (
 )
 GROUP BY p.player_id, p.first_name, p.last_name, p.fargo_rating
 ORDER BY rating_updates DESC, player;
+
+
+-- Q11: Which players are rated above the league's average Fargo Rating?
+--      Mission objective: Track player Fargo Ratings and game total indicators.
+--      (scalar subquery in WHERE · AVG)
+SELECT CONCAT(first_name, ' ', last_name) AS player,
+       fargo_rating
+FROM Players
+WHERE fargo_rating > (SELECT AVG(fargo_rating) FROM Players)
+ORDER BY fargo_rating DESC;
+
+
+-- Q12: Which registered players have never played a match?
+--      Mission objective: Maintain accurate player identity and contact records.
+--      (NOT IN subquery)
+SELECT CONCAT(first_name, ' ', last_name) AS player,
+       email,
+       phone_number
+FROM Players
+WHERE player_id NOT IN (SELECT player_id FROM Player_Matches)
+ORDER BY last_name;
