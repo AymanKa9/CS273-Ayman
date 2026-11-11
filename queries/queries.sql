@@ -113,7 +113,7 @@ HAVING SUM(CASE WHEN mr.GamesWon = mr.RaceTo THEN 1 ELSE 0 END) >= 2
 ORDER BY MatchesWon DESC, Player;
 
 -- Q8: Objective 2 — Show players who have won more total games than the average player
---     (GROUP BY · SUM, AVG · HAVING with a scalar subquery and a derived table)
+--     (GROUP BY · SUM, AVG · HAVING with a scalar subquery and a derived table) can u look at this please, Thank you 
 SELECT CONCAT(p.FirstName, ' ', p.LastName) AS Player,
        p.FargoRating,
        SUM(mr.GamesWon)                     AS TotalGamesWon
