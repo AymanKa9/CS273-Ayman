@@ -3,12 +3,12 @@ To store player ID, tournament structure, match outcomes, handicap and Fargo-Rat
 
 
 ## Mission Objectives
-- Maintain accurate player identity and contact records.
-- Track player Fargo Ratings and game total indicators.
-- Manage tournament parameters including formats, and game types.
-- Record individual match schedules, table assignments, and final scores.
-- Store handicap lookup thresholds based on rating differentials between opponents.
-- Log pre-match and post-match rating updates to preserve historical rating accuracy.
+1. Maintain accurate player identity and contact records.
+2. Track player Fargo Ratings and game total indicators.
+3. Manage tournament parameters including formats, and game types.
+4. Record individual match schedules, table assignments, and final scores.
+5. Store handicap lookup thresholds based on rating differentials between opponents.
+6. Log pre-match and post-match rating updates to preserve historical rating accuracy.
 
 
 ## Domain Description

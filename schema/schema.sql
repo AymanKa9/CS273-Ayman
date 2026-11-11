@@ -1,168 +1,162 @@
--- =====================================================================
--- CS 273 Database Systems · Phase 4 — MySQL Schema
--- Project: Pool League Fargo Rating Tracker
--- Student: Ayman Kaouch · Fall 2026
---
--- Creates an empty database with all 7 tables from the ERD (erd/erd.png).
--- Tables are created in dependency order: parents before children.
---
---   1. Players          (parent)
---   2. Formats          (parent)
---   3. Tournaments      (parent)
---   4. Matches          -> Formats, Tournaments
---   5. Player_Matches   -> Matches, Players        (M:N linking table)
---   6. Handicap_Chart   -> Formats                 (lookup table)
---   7. Rating_History   -> Players, Matches
--- =====================================================================
-
+-- ════════════════════════════════════════════════════════════
+-- Pool League Fargo Rating Tracker — Database Schema
+-- CS 273 — Phase 4   Author: Ayman Kaouch   Date: Oct 2026
+-- ════════════════════════════════════════════════════════════
 DROP DATABASE IF EXISTS FargoLeague;
-CREATE DATABASE FargoLeague;
+CREATE DATABASE FargoLeague
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
 USE FargoLeague;
 
+-- ── PARENT TABLES: no FK references ─────────────────────────
+-- ──────────────────────────────────────────────────────────
 
--- ---------------------------------------------------------------------
--- 1. Players — a person registered in the league and their current rating
--- ---------------------------------------------------------------------
+-- ── PARENT TABLE 1: Players ─────────────────────────────────
 CREATE TABLE Players (
-  player_id     INT           NOT NULL AUTO_INCREMENT,
-  first_name    VARCHAR(50)   NOT NULL,
-  last_name     VARCHAR(50)   NOT NULL,
-  fargo_rating  SMALLINT      NULL DEFAULT NULL,   -- NULL = not yet rated
-  phone_number  VARCHAR(20)   NULL DEFAULT NULL,
-  email         VARCHAR(100)  NULL DEFAULT NULL,
+  -- Primary key: surrogate, auto-assigned
+  PlayerID     INT UNSIGNED  AUTO_INCREMENT PRIMARY KEY,
+  -- Required fields
+  FirstName    VARCHAR(50)   NOT NULL,
+  LastName     VARCHAR(50)   NOT NULL,
+  -- Optional fields
+  FargoRating  SMALLINT          NULL,          -- NULL = not rated yet
+  Phone        VARCHAR(20)   NULL,
+  Email        VARCHAR(254)  NULL UNIQUE,
+  -- Business rule constraints
+  CONSTRAINT chk_fargo_rating CHECK (FargoRating BETWEEN 100 AND 900),
+  CONSTRAINT chk_email        CHECK (Email LIKE '%@%')
+);
 
-  CONSTRAINT pk_players PRIMARY KEY (player_id),
-  CONSTRAINT uq_players_email UNIQUE (email),
-  CONSTRAINT chk_players_fargo_rating CHECK (fargo_rating BETWEEN 100 AND 900),
-  CONSTRAINT chk_players_first_name   CHECK (first_name REGEXP '^[A-Za-z][A-Za-z '' -]*$'),
-  CONSTRAINT chk_players_last_name    CHECK (last_name  REGEXP '^[A-Za-z][A-Za-z '' -]*$'),
-  CONSTRAINT chk_players_email        CHECK (email LIKE '%_@_%._%'),
-  CONSTRAINT chk_players_phone        CHECK (phone_number REGEXP '^[0-9+() .-]{7,20}$')
-) ENGINE = InnoDB;
-
-
--- ---------------------------------------------------------------------
--- 2. Formats — a game type (8-Ball, 9-Ball, 10-Ball) and its rules
--- ---------------------------------------------------------------------
+-- ── PARENT TABLE 2: Formats ─────────────────────────────────
 CREATE TABLE Formats (
-  format_id      INT          NOT NULL AUTO_INCREMENT,
-  format_name    VARCHAR(50)  NOT NULL,
-  rules_summary  TEXT         NULL,
+  -- Primary key: surrogate, auto-assigned
+  FormatID      INT UNSIGNED  AUTO_INCREMENT PRIMARY KEY,
+  -- Required fields
+  FormatName    VARCHAR(50)   NOT NULL UNIQUE,  -- 8-Ball, 9-Ball, 10-Ball...
+  -- Optional fields
+  RulesSummary  TEXT          NULL,
+  -- Business rule constraints
+  CONSTRAINT chk_format_name CHECK (FormatName != '')
+);
 
-  CONSTRAINT pk_formats PRIMARY KEY (format_id),
-  CONSTRAINT uq_formats_format_name UNIQUE (format_name)
-) ENGINE = InnoDB;
-
-
--- ---------------------------------------------------------------------
--- 3. Tournaments — an event that groups a set of matches
--- ---------------------------------------------------------------------
+-- ── PARENT TABLE 3: Tournaments ─────────────────────────────
 CREATE TABLE Tournaments (
-  tournament_id    INT           NOT NULL AUTO_INCREMENT,
-  tournament_name  VARCHAR(100)  NOT NULL,
-  start_date       DATE          NOT NULL,
-  end_date         DATE          NULL DEFAULT NULL,   -- NULL = one-day or ongoing
-  location         VARCHAR(100)  NOT NULL,
+  -- Primary key: surrogate, auto-assigned
+  TournamentID    INT UNSIGNED  AUTO_INCREMENT PRIMARY KEY,
+  -- Required fields
+  TournamentName  VARCHAR(100)  NOT NULL,
+  StartDate       DATE          NOT NULL,
+  Location        VARCHAR(100)  NOT NULL,
+  -- Optional fields
+  EndDate         DATE          NULL,           -- NULL = one-day event
+  -- Business rule constraints
+  CONSTRAINT chk_tournament_dates CHECK (EndDate IS NULL OR EndDate >= StartDate)
+);
 
-  CONSTRAINT pk_tournaments PRIMARY KEY (tournament_id),
-  CONSTRAINT chk_tournaments_dates CHECK (end_date >= start_date)
-) ENGINE = InnoDB;
+-- ── CHILD TABLES: reference the parent tables above ─────────
+-- ──────────────────────────────────────────────────────────
 
-
--- ---------------------------------------------------------------------
--- 4. Matches — one scheduled match
---    Formats     1:N Matches  (every match has exactly one format)
---    Tournaments 1:N Matches  (optional: league nights have no tournament)
--- ---------------------------------------------------------------------
+-- ── CHILD TABLE: Matches ────────────────────────────────────
 CREATE TABLE Matches (
-  match_id       INT           NOT NULL AUTO_INCREMENT,
-  tournament_id  INT           NULL DEFAULT NULL,   -- NULL = regular league match
-  format_id      INT           NOT NULL,
-  match_date     DATETIME      NOT NULL,
-  location       VARCHAR(100)  NOT NULL,
-  table_number   TINYINT UNSIGNED NULL DEFAULT NULL, -- NULL = not yet assigned
+  -- Primary key: surrogate, auto-assigned
+  MatchID       INT UNSIGNED  AUTO_INCREMENT PRIMARY KEY,
+  -- Required fields
+  FormatID      INT UNSIGNED  NOT NULL,
+  MatchDate     DATETIME      NOT NULL,
+  Location      VARCHAR(100)  NOT NULL,
+  -- Optional fields
+  TournamentID  INT UNSIGNED  NULL,             -- NULL = regular league night
+  TableNumber   TINYINT UNSIGNED NULL,          -- NULL = table not assigned yet
+  -- Business rule constraints
+  CONSTRAINT chk_table_number CHECK (TableNumber >= 1),
+  -- FK constraints
+  CONSTRAINT fk_matches_format
+    FOREIGN KEY (FormatID)
+    REFERENCES Formats(FormatID)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
+  CONSTRAINT fk_matches_tournament
+    FOREIGN KEY (TournamentID)
+    REFERENCES Tournaments(TournamentID)
+    ON DELETE SET NULL
+    ON UPDATE CASCADE
+);
 
-  CONSTRAINT pk_matches PRIMARY KEY (match_id),
-  CONSTRAINT fk_matches_tournament_id
-    FOREIGN KEY (tournament_id) REFERENCES Tournaments (tournament_id)
-    ON UPDATE CASCADE ON DELETE SET NULL,
-  CONSTRAINT fk_matches_format_id
-    FOREIGN KEY (format_id) REFERENCES Formats (format_id)
-    ON UPDATE CASCADE ON DELETE RESTRICT,
-  CONSTRAINT chk_matches_table_number CHECK (table_number >= 1)
-) ENGINE = InnoDB;
+-- ── LINKING TABLE: MatchResults (Players ←→ Matches) ────────
+-- One row = one player's result in one match.
+CREATE TABLE MatchResults (
+  -- Both FK columns first
+  MatchID   INT UNSIGNED      NOT NULL,
+  PlayerID  INT UNSIGNED      NOT NULL,
+  -- Extra fields about the relationship
+  RaceTo    TINYINT UNSIGNED  NOT NULL,         -- games this player needs (handicap)
+  GamesWon  TINYINT UNSIGNED  NOT NULL DEFAULT 0,
+  -- Composite PK: the pair must be unique
+  PRIMARY KEY (MatchID, PlayerID),
+  -- Business rule constraints
+  CONSTRAINT chk_race_to   CHECK (RaceTo BETWEEN 1 AND 15),
+  CONSTRAINT chk_games_won CHECK (GamesWon <= RaceTo),
+  -- Both FKs still need FOREIGN KEY constraints
+  CONSTRAINT fk_results_match
+    FOREIGN KEY (MatchID)
+    REFERENCES Matches(MatchID)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT fk_results_player
+    FOREIGN KEY (PlayerID)
+    REFERENCES Players(PlayerID)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
+);
 
+-- ── CHILD TABLE: HandicapChart (lookup) ─────────────────────
+-- For each format and rating-gap range: the race for each player.
+CREATE TABLE HandicapChart (
+  -- Primary key: surrogate, auto-assigned
+  ChartID     INT UNSIGNED       AUTO_INCREMENT PRIMARY KEY,
+  -- Required fields
+  FormatID    INT UNSIGNED       NOT NULL,
+  MinGap      SMALLINT UNSIGNED  NOT NULL,
+  MaxGap      SMALLINT UNSIGNED  NOT NULL,
+  HigherRace  TINYINT UNSIGNED   NOT NULL,      -- race for the higher-rated player
+  LowerRace   TINYINT UNSIGNED   NOT NULL,      -- race for the lower-rated player
+  -- Business rule constraints
+  CONSTRAINT uq_chart_format_gap UNIQUE (FormatID, MinGap),
+  CONSTRAINT chk_gap_order       CHECK (MaxGap >= MinGap),
+  CONSTRAINT chk_higher_race     CHECK (HigherRace BETWEEN 1 AND 15),
+  CONSTRAINT chk_lower_race      CHECK (LowerRace BETWEEN 1 AND 15),
+  -- FK constraints
+  CONSTRAINT fk_handicap_format
+    FOREIGN KEY (FormatID)
+    REFERENCES Formats(FormatID)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+);
 
--- ---------------------------------------------------------------------
--- 5. Player_Matches — linking table that resolves Players M:N Matches.
---    One row per player per match (two rows in a normal match).
---    No is_winner column (removed after Phase 3 feedback): the winner is
---    the player whose games_won = race_to, so storing it would duplicate data.
--- ---------------------------------------------------------------------
-CREATE TABLE Player_Matches (
-  player_match_id  INT      NOT NULL AUTO_INCREMENT,
-  match_id         INT      NOT NULL,
-  player_id        INT      NOT NULL,
-  race_to          TINYINT  NOT NULL,                 -- this player's handicap race
-  games_won        TINYINT  NOT NULL DEFAULT 0,
-
-  CONSTRAINT pk_player_matches PRIMARY KEY (player_match_id),
-  CONSTRAINT uq_player_matches_match_player UNIQUE (match_id, player_id),
-  CONSTRAINT fk_player_matches_match_id
-    FOREIGN KEY (match_id) REFERENCES Matches (match_id)
-    ON UPDATE CASCADE ON DELETE CASCADE,
-  CONSTRAINT fk_player_matches_player_id
-    FOREIGN KEY (player_id) REFERENCES Players (player_id)
-    ON UPDATE CASCADE ON DELETE RESTRICT,
-  CONSTRAINT chk_player_matches_race_to   CHECK (race_to BETWEEN 1 AND 15),
-  CONSTRAINT chk_player_matches_games_won CHECK (games_won BETWEEN 0 AND race_to)
-) ENGINE = InnoDB;
-
-
--- ---------------------------------------------------------------------
--- 6. Handicap_Chart — lookup table: for each format and rating-gap range,
---    the race for the higher- and lower-rated player.
--- ---------------------------------------------------------------------
-CREATE TABLE Handicap_Chart (
-  chart_id     INT       NOT NULL AUTO_INCREMENT,
-  format_id    INT       NOT NULL,
-  min_gap      SMALLINT  NOT NULL,
-  max_gap      SMALLINT  NOT NULL,
-  higher_race  TINYINT   NOT NULL,
-  lower_race   TINYINT   NOT NULL,
-
-  CONSTRAINT pk_handicap_chart PRIMARY KEY (chart_id),
-  CONSTRAINT uq_handicap_chart_format_min_gap UNIQUE (format_id, min_gap),
-  CONSTRAINT fk_handicap_chart_format_id
-    FOREIGN KEY (format_id) REFERENCES Formats (format_id)
-    ON UPDATE CASCADE ON DELETE CASCADE,
-  CONSTRAINT chk_handicap_chart_min_gap     CHECK (min_gap >= 0),
-  CONSTRAINT chk_handicap_chart_gap_order   CHECK (max_gap >= min_gap),
-  CONSTRAINT chk_handicap_chart_higher_race CHECK (higher_race BETWEEN 1 AND 15),
-  CONSTRAINT chk_handicap_chart_lower_race  CHECK (lower_race  BETWEEN 1 AND 15)
-) ENGINE = InnoDB;
-
-
--- ---------------------------------------------------------------------
--- 7. Rating_History — one row each time a player's Fargo Rating changes
---    Players 1:N Rating_History (mandatory)
---    Matches 1:N Rating_History (optional: NULL = manual adjustment)
--- ---------------------------------------------------------------------
-CREATE TABLE Rating_History (
-  history_id  INT       NOT NULL AUTO_INCREMENT,
-  player_id   INT       NOT NULL,
-  match_id    INT       NULL DEFAULT NULL,
-  old_rating  SMALLINT  NULL DEFAULT NULL,           -- NULL = first rating
-  new_rating  SMALLINT  NOT NULL,
-  changed_at  DATETIME  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-  CONSTRAINT pk_rating_history PRIMARY KEY (history_id),
-  CONSTRAINT fk_rating_history_player_id
-    FOREIGN KEY (player_id) REFERENCES Players (player_id)
-    ON UPDATE CASCADE ON DELETE CASCADE,
-  CONSTRAINT fk_rating_history_match_id
-    FOREIGN KEY (match_id) REFERENCES Matches (match_id)
-    ON UPDATE CASCADE ON DELETE SET NULL,
-  CONSTRAINT chk_rating_history_old_rating CHECK (old_rating BETWEEN 100 AND 900),
-  CONSTRAINT chk_rating_history_new_rating CHECK (new_rating BETWEEN 100 AND 900)
-) ENGINE = InnoDB;
+-- ── CHILD TABLE: RatingHistory ──────────────────────────────
+-- One row each time a player's Fargo Rating changes.
+CREATE TABLE RatingHistory (
+  -- Primary key: surrogate, auto-assigned
+  HistoryID  INT UNSIGNED       AUTO_INCREMENT PRIMARY KEY,
+  -- Required fields
+  PlayerID   INT UNSIGNED       NOT NULL,
+  NewRating  SMALLINT           NOT NULL,
+  ChangedAt  DATETIME           NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  -- Optional fields
+  MatchID    INT UNSIGNED       NULL,           -- NULL = manual adjustment
+  OldRating  SMALLINT           NULL,           -- NULL = first rating
+  -- Business rule constraints
+  CONSTRAINT chk_old_rating CHECK (OldRating BETWEEN 100 AND 900),
+  CONSTRAINT chk_new_rating CHECK (NewRating BETWEEN 100 AND 900),
+  -- FK constraints
+  CONSTRAINT fk_history_player
+    FOREIGN KEY (PlayerID)
+    REFERENCES Players(PlayerID)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT fk_history_match
+    FOREIGN KEY (MatchID)
+    REFERENCES Matches(MatchID)
+    ON DELETE SET NULL
+    ON UPDATE CASCADE
+);

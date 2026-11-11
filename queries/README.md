@@ -1,50 +1,50 @@
-# Queries — Phase 5A (JOINs) and Phase 5B (Aggregates & Subqueries)
+# Phase 5 — Queries
 
-Run order: `schema/schema.sql` → `data/test_data.sql` → `queries/queries.sql`.
-
-| Query | JOIN type | Tables |
-| --- | --- | --- |
-| Q1 | INNER | Matches, Formats, Player_Matches, Players |
-| Q2 | INNER + LEFT | Rating_History, Players, Matches, Formats |
-| Q3 | LEFT | Players, Player_Matches |
-| Q4 | INNER | Tournaments, Matches, Formats |
-| Q5 | INNER | Matches, Formats, Player_Matches ×2, Players ×2, Handicap_Chart |
+Run order: `schema/schema.sql` → `data/seed.sql` → `queries/queries.sql`.
+Objective numbers refer to the Mission Objectives in `domain/README.md`.
 
 ## Phase 5A — JOIN queries
 
-**Q1 — Match results.** Answers *"record match schedules, table assignments, and final scores."* A match's date and table live in Matches, but the players and scores live in Player_Matches, so the query joins them on `match_id`, then Players on `player_id` and Formats on `format_id`. The result is a scoreboard showing who beat whom, in which game, and on which table.
+| Query | Objective | Tables | JOIN type |
+| --- | --- | --- | --- |
+| Q1 | 4 — Record match schedules, table assignments and final scores | Matches, Formats, MatchResults, Players | INNER (4 tables) |
+| Q2 | 6 — Log pre-match and post-match rating updates | RatingHistory, Players, Matches, Formats | INNER + LEFT |
+| Q3 | 2 — Track Fargo Ratings and game total indicators | Players, MatchResults | LEFT (zero counts) |
+| Q4 | 3 — Manage tournament parameters, formats and game types | Tournaments, Matches, Formats | INNER (3 tables) |
+| Q5 | 5 — Store handicap thresholds based on rating differentials | Matches, Formats, MatchResults ×2, Players ×2, HandicapChart | INNER (self-join pattern) |
 
-**Q2 — Rating history.** Answers *"log pre-match and post-match rating updates."* Rating_History only stores IDs, so it joins Players on `player_id` for names and uses a LEFT JOIN to Matches on `match_id`, because manual adjustments have no match. It shows each player's rating trend and which match moved it.
+**Q1 — Match scoreboard.** A match's date and table are in Matches, but the players and scores are in MatchResults, so the query joins them on `MatchID`, then Players on `PlayerID`. It shows who beat whom, in which game and on which table.
 
-**Q3 — Player activity.** Answers *"track player Fargo Ratings and game total indicators."* Players joins Player_Matches on `player_id` with a LEFT JOIN, so players with no matches still appear with zeros (Emma Cole). It shows who is most active and successful, and who signed up but hasn't played.
+**Q2 — Rating history.** RatingHistory only stores IDs, so it joins Players on `PlayerID` for names. It uses a LEFT JOIN to Matches because manual adjustments have no match (`MatchID` is NULL). It shows which match moved each rating up or down.
 
-**Q4 — Tournament schedule.** Answers *"manage tournament parameters including formats and game types."* Tournaments joins Matches on `tournament_id`, and Matches joins Formats on `format_id`. It gives a director the full schedule with times and table assignments. The Halloween Classic doesn't appear because it has no matches scheduled yet.
+**Q3 — Player activity.** A LEFT JOIN from Players to MatchResults on `PlayerID` keeps players with no matches, and they show 0. Emma Cole and Marcus Reed have signed up but haven't played.
 
-**Q5 — Handicap check.** Answers *"store handicap lookup thresholds based on rating differentials."* Player_Matches and Players are joined twice, once for each opponent, to compute the rating gap. Handicap_Chart is then joined on `format_id` and on the gap falling between `min_gap` and `max_gap`. It confirms every race followed the chart. Unrated players (match 6) are left out because there is no gap to look up, and the query uses current ratings rather than ratings at match time.
+**Q4 — Tournament schedule.** Tournaments joins Matches on `TournamentID`, and Matches joins Formats on `FormatID`. It gives a director the full schedule of the Fall 9-Ball Open with times and table assignments.
 
-## Phase 5B
+**Q5 — Handicap check.** MatchResults and Players are joined twice, once per opponent, so both ratings are on the same row. HandicapChart is joined on `FormatID` and on the rating gap falling between `MinGap` and `MaxGap`. All 7 matches between rated players followed the chart.
 
-| Query | Mission objective | Tables | Functions | Type |
+## Phase 5B — Aggregate & subquery queries
+
+| Query | Objective | Tables | Functions | Type |
 | --- | --- | --- | --- | --- |
-| Q6 | Manage formats and game types | Formats, Matches, Player_Matches | COUNT, AVG | GROUP BY, 3-table aggregate |
-| Q7 | Track game total indicators | Players, Player_Matches | COUNT, SUM | GROUP BY + HAVING |
-| Q8 | Track game total indicators | Players, Player_Matches | SUM, AVG | GROUP BY + HAVING with scalar subquery |
-| Q9 | Record match schedules and table assignments | Tournaments, Matches | COUNT, MIN, MAX | LEFT JOIN + aggregate (zero counts) |
-| Q10 | Log rating updates | Rating_History, Players (+ Player_Matches, Matches in subquery) | COUNT, MIN, MAX | GROUP BY + IN subquery |
-| Q11 | Track player Fargo Ratings | Players | AVG | Scalar subquery in WHERE |
-| Q12 | Maintain player records | Players, Player_Matches (subquery) | — | NOT IN subquery |
+| Q6 | 3 — Formats and game types | Formats, Matches, MatchResults | COUNT, AVG | GROUP BY, 3-table aggregate |
+| Q7 | 2 — Game total indicators | Players, MatchResults | COUNT, SUM | GROUP BY + HAVING |
+| Q8 | 2 — Game total indicators | Players, MatchResults | SUM, AVG | GROUP BY + HAVING with scalar subquery |
+| Q9 | 4 — Match schedules and table assignments | Tournaments, Matches | COUNT, MIN, MAX | LEFT JOIN + aggregate (zero counts) |
+| Q10 | 6 — Rating updates | RatingHistory, Players (MatchResults, Matches in subquery) | COUNT, MIN, MAX | GROUP BY + IN subquery |
+| Q11 | 2 — Fargo Ratings | Players | AVG | Scalar subquery in WHERE |
+| Q12 | 1 — Player identity and contact records | Players, MatchResults (subquery) | — | NOT IN subquery |
 
-**Q6 — Activity per format.** GROUP BY turns every match into one row per format so COUNT and AVG can summarize each game type. 9-Ball is the most played format (5 of 8 matches) and has the longest average race (5.1 games).
+**Q6 — Activity per format.** GROUP BY gives one row per format, so COUNT and AVG summarize each game type. 9-Ball is the most played (5 of 8 matches) with the longest average race (5.1).
 
-**Q7 — Players with 2+ wins.** SUM counts each player's wins, and HAVING keeps players with at least 2. WHERE can't do this, because the win count only exists after grouping. Nadia Rahimi and Sara Bennett are undefeated (2–0).
+**Q7 — Players with 2+ wins.** SUM counts each player's wins, and HAVING keeps players with at least 2. WHERE can't do this because the win count only exists after GROUP BY. Nadia Rahimi and Sara Bennett are undefeated (2–0).
 
-**Q8 — Above-average game totals.** The subquery calculates the average total games won per player (8.9), so HAVING compares each player to the current average instead of a hard-coded number. Omar, Grace and Nadia win the most games.
+**Q8 — Above-average game totals.** The subquery calculates the average games won per player (8.9), and HAVING compares each player to it instead of a hard-coded number. Omar, Grace and Nadia win the most games.
 
-**Q9 — Tournament workload.** A LEFT JOIN keeps tournaments with no matches, and COUNT(m.match_id) returns 0 for them instead of dropping them. The Fall 9-Ball Open used 4 matches on 2 tables, and the Halloween Classic has nothing scheduled yet.
+**Q9 — Tournament workload.** The LEFT JOIN keeps tournaments with no matches, and `COUNT(m.MatchID)` returns 0 for them. Only the Fall 9-Ball Open has matches (4, on 2 tables). The other 4 tournaments have none scheduled yet.
 
-**Q10 — Rating ranges of tournament players.** The IN subquery finds every player who played a tournament match, and GROUP BY summarizes their rating history. Grace Kim had the most updates (4) and has dropped from her 618 high, while Sara Bennett is at her highest rating (450).
+**Q10 — Rating ranges of tournament players.** The IN subquery finds every player who played a tournament match, and GROUP BY summarizes their rating history. Grace Kim had the most updates (4). Sara Bennett is at her highest rating (450).
 
-**Q11 — Above-average ratings.** The inner query returns one value, the league's average rating (534, unrated players ignored), and the outer query keeps players above it. Nadia (700), Grace (610) and Omar (600) are the strongest players.
+**Q11 — Above-average ratings.** The inner query returns one value, the league average (530). The outer query keeps players above it: Nadia (700), Grace (610) and Omar (600).
 
-**Q12 — Players who never played.** The inner query lists every player_id that appears in Player_Matches, and NOT IN keeps the players who aren't in that list. Emma Cole signed up but hasn't played, so the league can contact her using the email and phone shown.
-
+**Q12 — Players who never played.** The inner query lists every `PlayerID` in MatchResults, and NOT IN keeps players who aren't in that list. Emma Cole and Marcus Reed haven't played, so the league can contact them using the email and phone shown.
