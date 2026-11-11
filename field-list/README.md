@@ -4,101 +4,113 @@
 **Student:** Ayman Kaouch · CS 273 Database Systems · Fall 2026
 
 **Key legend:** PK = primary key · FK = foreign key · AK = alternate key (unique) · UQ = composite unique constraint
+**Naming:** every primary key is TableName + ID (`PlayerID`, `MatchID`, ...). Every table has a surrogate `INT UNSIGNED AUTO_INCREMENT` PK, except the linking table MatchResults, which uses a composite PK of its two FKs.
 
 ---
 
 ## Table 1: `Players`
 A person registered in the league and their current Fargo Rating.
 
-| Field Name | Data Type | Null Support | Default Value | Constraints / Range |
+| Field | MySQL Type | NULL | Default | Constraints / Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| `player_id` | `INT` | Not Null | None | PK, auto-increment |
-| `first_name` | `VARCHAR(50)` | Not Null | None | Letters, spaces, hyphens and apostrophes |
-| `last_name` | `VARCHAR(50)` | Not Null | None | Letters, spaces, hyphens and apostrophes |
-| `fargo_rating` | `INT` | Null | `NULL` | Range 100–900; `NULL` = not yet rated |
-| `phone_number` | `VARCHAR(20)` | Null | `NULL` | Standard phone format |
-| `email` | `VARCHAR(100)` | Null | `NULL` | AK, valid email format |
-
----
+| `PlayerID` | `INT UNSIGNED` | NOT NULL | AUTO_INCREMENT | PK |
+| `FirstName` | `VARCHAR(50)` | NOT NULL | — | |
+| `LastName` | `VARCHAR(50)` | NOT NULL | — | |
+| `FargoRating` | `SMALLINT` | NULL | NULL | CHECK 100–900; NULL = not rated yet |
+| `Phone` | `VARCHAR(20)` | NULL | NULL | |
+| `Email` | `VARCHAR(254)` | NULL | NULL | AK (UNIQUE); CHECK contains `@` |
 
 ## Table 2: `Formats`
-A game type the league plays (8-Ball, 9-Ball, 10-Ball) and its rules.
+A game type the league plays (8-Ball, 9-Ball, 10-Ball...).
 
-| Field Name | Data Type | Null Support | Default Value | Constraints / Range |
+| Field | MySQL Type | NULL | Default | Constraints / Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| `format_id` | `INT` | Not Null | None | PK, auto-increment |
-| `format_name` | `VARCHAR(50)` | Not Null | None | AK, unique format title |
-| `rules_summary` | `TEXT` | Null | `NULL` | Descriptive text |
+| `FormatID` | `INT UNSIGNED` | NOT NULL | AUTO_INCREMENT | PK |
+| `FormatName` | `VARCHAR(50)` | NOT NULL | — | AK (UNIQUE); CHECK not empty |
+| `RulesSummary` | `TEXT` | NULL | NULL | |
 
----
-
-## Table 3: `Matches`
-One scheduled match: when, where, on which table, in which format, and (optionally) in which tournament.
-
-| Field Name | Data Type | Null Support | Default Value | Constraints / Range |
-| :--- | :--- | :--- | :--- | :--- |
-| `match_id` | `INT` | Not Null | None | PK, auto-increment |
-| `tournament_id` | `INT` | Null | `NULL` | FK → `Tournaments.tournament_id`; `NULL` = regular league match |
-| `format_id` | `INT` | Not Null | None | FK → `Formats.format_id` |
-| `match_date` | `DATETIME` | Not Null | None | Valid date and time of the match |
-| `location` | `VARCHAR(100)` | Not Null | None | Venue name/address |
-| `table_number` | `INT` | Null | `NULL` | Range ≥ 1; `NULL` = not yet assigned |
-
----
-
-## Table 4: `Player_Matches` (linking table)
-One player's participation and result in one match. A normal match has two rows here.
-
-| Field Name | Data Type | Null Support | Default Value | Constraints / Range |
-| :--- | :--- | :--- | :--- | :--- |
-| `player_match_id` | `INT` | Not Null | None | PK, auto-increment |
-| `match_id` | `INT` | Not Null | None | FK → `Matches.match_id` |
-| `player_id` | `INT` | Not Null | None | FK → `Players.player_id` |
-| `race_to` | `INT` | Not Null | None | Range 1–15; games this player needs to win (their handicap) |
-| `games_won` | `INT` | Not Null | `0` | Range 0 to `race_to` |
-| — | — | — | — | UQ (`match_id`, `player_id`): a player appears once per match |
-
----
-
-## Table 5: `Tournaments`
+## Table 3: `Tournaments`
 A tournament event that groups a set of matches.
 
-| Field Name | Data Type | Null Support | Default Value | Constraints / Range |
+| Field | MySQL Type | NULL | Default | Constraints / Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| `tournament_id` | `INT` | Not Null | None | PK, auto-increment |
-| `tournament_name` | `VARCHAR(100)` | Not Null | None | Event title |
-| `start_date` | `DATE` | Not Null | None | Valid date |
-| `end_date` | `DATE` | Null | `NULL` | ≥ `start_date`; `NULL` = one-day or ongoing |
-| `location` | `VARCHAR(100)` | Not Null | None | Venue name/address |
+| `TournamentID` | `INT UNSIGNED` | NOT NULL | AUTO_INCREMENT | PK |
+| `TournamentName` | `VARCHAR(100)` | NOT NULL | — | |
+| `StartDate` | `DATE` | NOT NULL | — | |
+| `EndDate` | `DATE` | NULL | NULL | CHECK EndDate ≥ StartDate; NULL = one-day event |
+| `Location` | `VARCHAR(100)` | NOT NULL | — | |
+
+## Table 4: `Matches`
+One scheduled match: when, where, on which table, in which format and tournament.
+
+| Field | MySQL Type | NULL | Default | Constraints / Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| `MatchID` | `INT UNSIGNED` | NOT NULL | AUTO_INCREMENT | PK |
+| `TournamentID` | `INT UNSIGNED` | NULL | NULL | FK → `Tournaments.TournamentID`; NULL = league night |
+| `FormatID` | `INT UNSIGNED` | NOT NULL | — | FK → `Formats.FormatID` |
+| `MatchDate` | `DATETIME` | NOT NULL | — | |
+| `Location` | `VARCHAR(100)` | NOT NULL | — | |
+| `TableNumber` | `TINYINT UNSIGNED` | NULL | NULL | CHECK ≥ 1; NULL = not assigned yet |
+
+## Table 5: `MatchResults` (linking table, Players ⟷ Matches)
+One player's result in one match. A normal match has two rows. Named after what the relationship represents (a match result), not the two tables it connects.
+
+| Field | MySQL Type | NULL | Default | Constraints / Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| `MatchID` | `INT UNSIGNED` | NOT NULL | — | PK (composite), FK → `Matches.MatchID` |
+| `PlayerID` | `INT UNSIGNED` | NOT NULL | — | PK (composite), FK → `Players.PlayerID` |
+| `RaceTo` | `TINYINT UNSIGNED` | NOT NULL | — | CHECK 1–15; the player's handicap race |
+| `GamesWon` | `TINYINT UNSIGNED` | NOT NULL | 0 | CHECK GamesWon ≤ RaceTo |
+
+## Table 6: `HandicapChart` (lookup table)
+For each format and rating-gap range, the race for the higher- and lower-rated player.
+
+| Field | MySQL Type | NULL | Default | Constraints / Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| `ChartID` | `INT UNSIGNED` | NOT NULL | AUTO_INCREMENT | PK |
+| `FormatID` | `INT UNSIGNED` | NOT NULL | — | FK → `Formats.FormatID`; UQ (FormatID, MinGap) |
+| `MinGap` | `SMALLINT UNSIGNED` | NOT NULL | — | |
+| `MaxGap` | `SMALLINT UNSIGNED` | NOT NULL | — | CHECK MaxGap ≥ MinGap |
+| `HigherRace` | `TINYINT UNSIGNED` | NOT NULL | — | CHECK 1–15 |
+| `LowerRace` | `TINYINT UNSIGNED` | NOT NULL | — | CHECK 1–15 |
+
+## Table 7: `RatingHistory`
+One row each time a player's Fargo Rating changes.
+
+| Field | MySQL Type | NULL | Default | Constraints / Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| `HistoryID` | `INT UNSIGNED` | NOT NULL | AUTO_INCREMENT | PK |
+| `PlayerID` | `INT UNSIGNED` | NOT NULL | — | FK → `Players.PlayerID` |
+| `MatchID` | `INT UNSIGNED` | NULL | NULL | FK → `Matches.MatchID`; NULL = manual adjustment |
+| `OldRating` | `SMALLINT` | NULL | NULL | CHECK 100–900; NULL = first rating |
+| `NewRating` | `SMALLINT` | NOT NULL | — | CHECK 100–900 |
+| `ChangedAt` | `DATETIME` | NOT NULL | CURRENT_TIMESTAMP | |
 
 ---
 
-## Table 6: `Handicap_Chart` (lookup table)
-The race each player gets, based on the rating gap between two opponents, for each format.
+## FK type confirmation
+Every FK has exactly the same type as the PK it references: all IDs are `INT UNSIGNED`.
 
-| Field Name | Data Type | Null Support | Default Value | Constraints / Range |
-| :--- | :--- | :--- | :--- | :--- |
-| `chart_id` | `INT` | Not Null | None | PK, auto-increment |
-| `format_id` | `INT` | Not Null | None | FK → `Formats.format_id` |
-| `min_gap` | `INT` | Not Null | None | Range ≥ 0 |
-| `max_gap` | `INT` | Not Null | None | ≥ `min_gap` |
-| `higher_race` | `INT` | Not Null | None | Range 1–15; race for the higher-rated player |
-| `lower_race` | `INT` | Not Null | None | Range 1–15; race for the lower-rated player |
-| — | — | — | — | UQ (`format_id`, `min_gap`): no overlapping rows per format |
+| FK | References | Type match |
+| :--- | :--- | :--- |
+| `Matches.TournamentID` | `Tournaments.TournamentID` | INT UNSIGNED = INT UNSIGNED ✓ |
+| `Matches.FormatID` | `Formats.FormatID` | INT UNSIGNED = INT UNSIGNED ✓ |
+| `MatchResults.MatchID` | `Matches.MatchID` | INT UNSIGNED = INT UNSIGNED ✓ |
+| `MatchResults.PlayerID` | `Players.PlayerID` | INT UNSIGNED = INT UNSIGNED ✓ |
+| `HandicapChart.FormatID` | `Formats.FormatID` | INT UNSIGNED = INT UNSIGNED ✓ |
+| `RatingHistory.PlayerID` | `Players.PlayerID` | INT UNSIGNED = INT UNSIGNED ✓ |
+| `RatingHistory.MatchID` | `Matches.MatchID` | INT UNSIGNED = INT UNSIGNED ✓ |
 
----
-
-## Table 7: `Rating_History`
-One row each time a player's Fargo Rating changes, so growth can be tracked over time.
-
-| Field Name | Data Type | Null Support | Default Value | Constraints / Range |
-| :--- | :--- | :--- | :--- | :--- |
-| `history_id` | `INT` | Not Null | None | PK, auto-increment |
-| `player_id` | `INT` | Not Null | None | FK → `Players.player_id` |
-| `match_id` | `INT` | Null | `NULL` | FK → `Matches.match_id`; `NULL` = manual adjustment |
-| `old_rating` | `INT` | Null | `NULL` | Range 100–900; `NULL` = first rating |
-| `new_rating` | `INT` | Not Null | None | Range 100–900 |
-| `changed_at` | `DATETIME` | Not Null | `CURRENT_TIMESTAMP` | Valid timestamp |
+## CHECK constraint candidates
+| Field | Rule | Why |
+| :--- | :--- | :--- |
+| `FargoRating`, `OldRating`, `NewRating` | 100–900 | The Fargo scale doesn't go outside this range |
+| `RaceTo`, `HigherRace`, `LowerRace` | 1–15 | A race of 0 or more than 15 games is not a real pool race |
+| `GamesWon` | ≤ `RaceTo` | A player stops winning games once they reach their race |
+| `EndDate` | ≥ `StartDate` | A tournament can't end before it starts |
+| `MaxGap` | ≥ `MinGap` | A gap range must not be backwards |
+| `TableNumber` | ≥ 1 | Pool halls number tables starting at 1 |
+| `Email` | contains `@` | Catches obviously invalid addresses |
 
 ---
 
@@ -107,14 +119,15 @@ One row each time a player's Fargo Rating changes, so growth can be tracked over
 | :--- | :--- |
 | Gave every table a name and a one-line purpose | The original tables had no titles, so FKs did not clearly point anywhere |
 | Added `VARCHAR` lengths | Needed to write the SQL schema in Phase 4 |
-| Names allow spaces, hyphens, apostrophes | "Alphabetic only" would reject real names like O'Brien or Ben-Ali |
-| Removed AK from `phone_number` | Two players (family members) can share a phone; email stays unique |
-| Removed `CURRENT_TIMESTAMP` default on `match_date` | Matches are scheduled ahead of time, so "now" is the wrong default |
-| Added `table_number` to `Matches` | Mission objectives promise table assignments, but no field stored them |
-| Replaced `handicap_at_match` (0–1000) with `race_to` (1–15) | In Fargo handicapping the handicap *is* the race: a lower-rated player races to fewer games. A 0–1000 number has no clear meaning |
-| Removed `games_lost` | It is always the opponent's `games_won`, so storing it twice risks the two values disagreeing |
-| Added UQ (`match_id`, `player_id`) | Stops the same player from being entered twice in one match |
-| Added `Tournaments` table and `Matches.tournament_id` | Mission objectives promise tournament management, but there was no table for it |
-| Added `Handicap_Chart` lookup table | The domain says races are set from a lookup table based on rating gaps |
-| Added `Rating_History` table | The current rating in `Players` is overwritten after every match, so past ratings were lost; the mission promises historical rating tracking |
-| Removed `is_winner` from `Player_Matches` (after Phase 3 feedback) | The winner is the player whose `games_won = race_to`, so storing it could disagree with the score |
+| Phone is not a unique key | Two players (family members) can share a phone; email stays unique |
+| No `CURRENT_TIMESTAMP` default on `MatchDate` | Matches are scheduled ahead of time, so "now" is the wrong default |
+| Added `TableNumber` to `Matches` | Mission objectives promise table assignments, but no field stored them |
+| Replaced `handicap_at_match` (0–1000) with `RaceTo` (1–15) | In Fargo handicapping the handicap *is* the race: a lower-rated player races to fewer games |
+| Removed `games_lost` | It is always the opponent's games won, so storing it twice risks the two values disagreeing |
+| Added `Tournaments` table and `Matches.TournamentID` | Mission objectives promise tournament management, but there was no table for it |
+| Added `HandicapChart` lookup table | The domain says races are set from a lookup table based on rating gaps |
+| Added `RatingHistory` table | The current rating in `Players` is overwritten after every match; the mission promises historical rating tracking |
+| Removed `is_winner` (after Phase 3 feedback) | The winner is the player whose `GamesWon = RaceTo`, so storing it could disagree with the score |
+| Renamed all fields to TableName + ID / PascalCase (Week 5 Keys lecture) | Matches the course naming convention: `PlayerID`, `FirstName`, ... |
+| Renamed `Player_Matches` to `MatchResults` and gave it a composite PK `(MatchID, PlayerID)` (Week 6–7 lectures) | Linking tables are named after the relationship and use a composite PK of their two FKs |
+| All IDs are `INT UNSIGNED` (Week 7 lab) | IDs are never negative, and every FK must match its PK's type |
