@@ -29,7 +29,7 @@ Objective numbers refer to the Mission Objectives in `domain/README.md`.
 | --- | --- | --- | --- | --- |
 | Q6 | 3 — Formats and game types | Formats, Matches, MatchResults | COUNT, AVG | GROUP BY, 3-table aggregate |
 | Q7 | 2 — Game total indicators | Players, MatchResults | COUNT, SUM | GROUP BY + HAVING |
-| Q8 | 2 — Game total indicators | Players, MatchResults | SUM, AVG | GROUP BY + HAVING with scalar subquery |
+| Q8 | 2 — Game total indicators | Players, MatchResults | SUM, COUNT | GROUP BY + HAVING with scalar subquery |
 | Q9 | 4 — Match schedules and table assignments | Tournaments, Matches | COUNT, MIN, MAX | LEFT JOIN + aggregate (zero counts) |
 | Q10 | 6 — Rating updates | RatingHistory, Players (MatchResults, Matches in subquery) | COUNT, MIN, MAX | GROUP BY + IN subquery |
 | Q11 | 2 — Fargo Ratings | Players | AVG | Scalar subquery in WHERE |
@@ -39,7 +39,7 @@ Objective numbers refer to the Mission Objectives in `domain/README.md`.
 
 **Q7 — Players with 2+ wins.** SUM counts each player's wins, and HAVING keeps players with at least 2. WHERE can't do this because the win count only exists after GROUP BY. Nadia Rahimi and Sara Bennett are undefeated (2–0).
 
-**Q8 — Above-average game totals.** The subquery calculates the average games won per player (8.9), and HAVING compares each player to it instead of a hard-coded number. Omar, Grace and Nadia win the most games.
+**Q8 — Above-average game totals.** The subquery divides all games won by the number of players who played to get the average per player (62 ÷ 7 = 8.9), and HAVING compares each player to it instead of a hard-coded number. Omar, Grace and Nadia win the most games.
 
 **Q9 — Tournament workload.** The LEFT JOIN keeps tournaments with no matches, and `COUNT(m.MatchID)` returns 0 for them. Only the Fall 9-Ball Open has matches (4, on 2 tables). The other 4 tournaments have none scheduled yet.
 
