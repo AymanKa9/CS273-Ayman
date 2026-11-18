@@ -128,6 +128,6 @@ Every FK has exactly the same type as the PK it references: all IDs are `INT UNS
 | Added `HandicapChart` lookup table | The domain says races are set from a lookup table based on rating gaps |
 | Added `RatingHistory` table | The current rating in `Players` is overwritten after every match; the mission promises historical rating tracking |
 | Removed `is_winner` (after Phase 3 feedback) | The winner is the player whose `GamesWon = RaceTo`, so storing it could disagree with the score |
-| Renamed all fields to TableName + ID / PascalCase (Week 5 Keys lecture) | Matches the course naming convention: `PlayerID`, `FirstName`, ... |
-| Renamed `Player_Matches` to `MatchResults` and gave it a composite PK `(MatchID, PlayerID)` (Week 6–7 lectures) | Linking tables are named after the relationship and use a composite PK of their two FKs |
-| All IDs are `INT UNSIGNED` (Week 7 lab) | IDs are never negative, and every FK must match its PK's type |
+| Renamed all fields to TableName + ID / PascalCase | One consistent naming rule: `PlayerID`, `FirstName`, ... |
+| Renamed `Player_Matches` to `MatchResults` and gave it a composite PK `(MatchID, PlayerID)` | Linking tables are named after the relationship and use a composite PK of their two FKs |
+| All IDs are `INT UNSIGNED` | IDs are never negative, and every FK must match its PK's type |

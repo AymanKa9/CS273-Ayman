@@ -8,7 +8,7 @@
 **read.php follows the Phase 7a checklist:**
 - Runs a 4-table JOIN with a prepared statement (`prepare` → `execute` → `fetchAll`).
 - Shows results in a `<table>` with `<thead>` headers and one `<tr>` per row in `<tbody>`.
-- Optional filter by game format (Week 12 slide 10 pattern): the value must be in the whitelist of real FormatIDs, and it is passed as a `?` parameter, never concatenated into the SQL.
+- Optional filter by game format: the value must be in the whitelist of real FormatIDs, and it is passed as a `?` parameter, never concatenated into the SQL.
 - Shows "No records found." when there are no rows (try the One Pocket filter).
 - Every database value is wrapped in `htmlspecialchars()` to prevent XSS.
 - Database errors are logged, and the user sees a generic message.

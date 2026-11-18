@@ -98,5 +98,5 @@ A close second was the **handicap**. Phase 2 had a `handicap_at_match` number fr
 
 - **Removed `is_winner` from MatchResults.** The winner can be worked out from the data (`GamesWon = RaceTo`), so storing it could disagree with the score. This is the same reason `games_lost` was removed.
 - **Added relationship verb labels** to every line in the ERD (for example, Players *plays in* MatchResults).
-- **Renamed to match the course naming conventions (Week 5–7 lectures).** Fields are now TableName + ID / PascalCase (`PlayerID`, `FargoRating`). The linking table Player_Matches is now **MatchResults**, named after what the relationship represents, with the composite primary key `(MatchID, PlayerID)` instead of its own ID column.
+- **Renamed for consistent naming.** Fields are now TableName + ID / PascalCase (`PlayerID`, `FargoRating`). The linking table Player_Matches is now **MatchResults**, named after what the relationship represents, with the composite primary key `(MatchID, PlayerID)` instead of its own ID column.
 
