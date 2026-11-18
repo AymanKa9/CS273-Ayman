@@ -15,10 +15,10 @@
 
 ## Run it
 1. Load the database: run `schema/schema.sql`, then `data/seed.sql` in MySQL Workbench.
-2. Start PHP's built-in server from this folder, with your MySQL username and password:
+2. Start the server from this folder and type your MySQL username and password when asked:
    ```
    cd app
-   DB_USER=yourname DB_PASS=yourpassword php -S localhost:8080
+   ./start.sh
    ```
-   (The password is passed this way so it is never saved in this public repo. Without them, `db.php` uses `root` with no password.)
+   (The password is typed in, not saved, because this repo is public. You can also run `DB_USER=yourname DB_PASS=yourpassword php -S localhost:8080` directly.)
 3. Open http://localhost:8080/read.php
