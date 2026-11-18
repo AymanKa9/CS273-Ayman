@@ -6,12 +6,13 @@
 // JOIN query: Matches → Formats, Matches → MatchResults → Players (same as Phase 5A Q1).
 // Optional filter by game format, passed as a bound parameter (never put into the SQL string).
 
+// ── 1. Connect ──────────────────────────────────────────────
 require __DIR__ . '/db.php';
 
-$error   = null;
 $formats = [];
 $results = [];
 
+// ── 2. Filter ───────────────────────────────────────────────
 // Format filter from the URL, e.g. read.php?format=2. Only a whole number is accepted.
 $formatId = filter_input(INPUT_GET, 'format', FILTER_VALIDATE_INT);
 
@@ -21,7 +22,7 @@ try {
     $stmt->execute();
     $formats = $stmt->fetchAll();
 
-    // Step 1: Prepare the JOIN query
+    // ── 3. Query: Step 1, prepare the JOIN query (Phase 5A Q1) ──
     $sql = 'SELECT m.MatchID,
                    m.MatchDate,
                    f.FormatName,
@@ -58,7 +59,7 @@ try {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Match Results — Pool League</title>
+<title>Match Results | Pool League Fargo Tracker</title>
 <style>
   body  { font-family: Arial, sans-serif; margin: 24px; color: #1a1a1a; }
   h1    { margin-bottom: 4px; }
@@ -70,7 +71,8 @@ try {
   .won  { color: #1E6B3C; font-weight: bold; }
   .lost { color: #7B1F1F; }
   .note { color: #555; }
-  .error { color: #7B1F1F; font-weight: bold; }
+  .no-results { color: #888; font-style: italic; margin-top: 1rem; }
+  .error { color: #c0392b; background: #fdf2f2; padding: .75rem; }
 </style>
 </head>
 <body>
@@ -92,12 +94,12 @@ try {
   <button type="submit">Filter</button>
 </form>
 
-<?php if ($error): ?>
+<?php if (isset($error)): ?>
   <p class="error"><?= htmlspecialchars($error) ?></p>
 <?php elseif (empty($results)): ?>
-  <p>No records found.</p>
+  <p class="no-results">No records found.</p>
 <?php else: ?>
-  <p>Showing <?= count($results) ?> results.</p>
+  <p><?= count($results) ?> record(s) found.</p>
   <table>
     <thead>
       <tr>
@@ -116,14 +118,22 @@ try {
       <?php foreach ($results as $row): ?>
         <tr>
           <td><?= htmlspecialchars($row['MatchID']) ?></td>
-          <td><?= htmlspecialchars($row['MatchDate']) ?></td>
+          <td><?= htmlspecialchars((new DateTime($row['MatchDate']))->format('M d, Y g:i A')) ?></td>
           <td><?= htmlspecialchars($row['FormatName']) ?></td>
           <td><?= htmlspecialchars($row['TableNumber'] ?? '—') ?></td>
           <td><?= htmlspecialchars($row['Location']) ?></td>
           <td><?= htmlspecialchars($row['Player']) ?></td>
           <td><?= htmlspecialchars($row['RaceTo']) ?></td>
           <td><?= htmlspecialchars($row['GamesWon']) ?></td>
-          <td class="<?= $row['Result'] === 'Won' ? 'won' : 'lost' ?>"><?= htmlspecialchars($row['Result']) ?></td>
+          <?php
+            // Result badge: CSS class based on the value
+            $class = match ($row['Result']) {
+                'Won'   => 'won',
+                'Lost'  => 'lost',
+                default => '',
+            };
+          ?>
+          <td class="<?= $class ?>"><?= htmlspecialchars($row['Result']) ?></td>
         </tr>
       <?php endforeach; ?>
     </tbody>
