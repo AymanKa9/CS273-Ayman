@@ -2,96 +2,99 @@
 // read.php -- Phase 7a read page: match results
 // CS 273 Phase 7   Ayman Kaouch   Pool League Fargo Rating Tracker
 // Objective 4 — Record individual match schedules, table assignments, and final scores.
-//
-// JOIN query: Matches → Formats, Matches → MatchResults → Players (same as Phase 5A Q1).
-// Optional filter by game format, passed as a bound parameter (never put into the SQL string).
+// JOIN query: Matches → Formats, Matches → MatchResults → Players (Phase 5A Q1).
 
 // ── 1. Connect ──────────────────────────────────────────────
 require __DIR__ . '/db.php';
 
-$formats = [];
-$results = [];
-
-// ── 2. Filter ───────────────────────────────────────────────
-// Format filter from the URL, e.g. read.php?format=2. Only a whole number is accepted.
-$formatId = filter_input(INPUT_GET, 'format', FILTER_VALIDATE_INT);
+// ── 2. Query ────────────────────────────────────────────────
+// Use one of my Phase 5A JOIN queries (Q1)
+$select = 'SELECT m.MatchID,
+                  m.MatchDate,
+                  f.FormatName,
+                  m.TableNumber,
+                  m.Location,
+                  p.FirstName,
+                  p.LastName,
+                  mr.RaceTo,
+                  mr.GamesWon,
+                  mr.GamesWon = mr.RaceTo AS Won
+           FROM Matches m
+           INNER JOIN Formats f       ON m.FormatID  = f.FormatID
+           INNER JOIN MatchResults mr ON m.MatchID   = mr.MatchID
+           INNER JOIN Players p       ON mr.PlayerID = p.PlayerID';
+$order = ' ORDER BY m.MatchDate, m.MatchID, Won DESC';
 
 try {
-    // Formats for the dropdown
+    // Formats for the dropdown, and the list of allowed filter values
     $stmt = $pdo->prepare('SELECT FormatID, FormatName FROM Formats ORDER BY FormatName');
     $stmt->execute();
     $formats = $stmt->fetchAll();
 
-    // ── 3. Query: Step 1, prepare the JOIN query (Phase 5A Q1) ──
-    $sql = 'SELECT m.MatchID,
-                   m.MatchDate,
-                   f.FormatName,
-                   m.TableNumber,
-                   m.Location,
-                   CONCAT(p.FirstName, \' \', p.LastName) AS Player,
-                   mr.RaceTo,
-                   mr.GamesWon,
-                   CASE WHEN mr.GamesWon = mr.RaceTo THEN \'Won\' ELSE \'Lost\' END AS Result
-            FROM Matches m
-            INNER JOIN Formats f       ON m.FormatID  = f.FormatID
-            INNER JOIN MatchResults mr ON m.MatchID   = mr.MatchID
-            INNER JOIN Players p       ON mr.PlayerID = p.PlayerID';
-    $params = [];
-    if ($formatId) {
-        $sql .= ' WHERE m.FormatID = :format_id';    // value is bound, not concatenated
-        $params[':format_id'] = $formatId;
+    $allowed_formats = [];
+    foreach ($formats as $f) {
+        $allowed_formats[] = $f['FormatID'];
     }
-    $sql .= ' ORDER BY m.MatchDate, m.MatchID, Result DESC';
+
+    // Get filter from query string, default to 'all'
+    // NEVER concatenate the filter into the SQL: it is passed as a ? parameter
+    $filter = $_GET['format'] ?? 'all';
+    if ($filter === 'all' || !in_array($filter, $allowed_formats)) {
+        $filter = 'all';
+        $sql    = $select . $order;
+        $params = [];
+    } else {
+        $sql    = $select . ' WHERE m.FormatID = ?' . $order;
+        $params = [$filter];
+    }
 
     $stmt = $pdo->prepare($sql);
-    // Step 2: Execute with parameter values
     $stmt->execute($params);
-    // Step 3: Fetch all rows as associative arrays
     $results = $stmt->fetchAll();
 } catch (PDOException $e) {
-    // Log the real error (for me), show a generic message (for the user)
-    error_log('DB error: ' . $e->getMessage());
-    $error = 'A database error occurred. Please try again.';
+    error_log($e->getMessage());
+    $formats = [];
+    $results = [];
+    $error   = 'Could not load match results. Please try again.';
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Match Results | Pool League Fargo Tracker</title>
 <style>
-  body  { font-family: Arial, sans-serif; margin: 24px; color: #1a1a1a; }
-  h1    { margin-bottom: 4px; }
-  form  { margin: 16px 0; }
-  table { border-collapse: collapse; width: 100%; max-width: 1100px; }
-  th, td { border: 1px solid #ccc; padding: 8px 10px; text-align: left; }
-  thead th { background: #1F3864; color: #fff; }
-  tbody tr:nth-child(4n+1), tbody tr:nth-child(4n+2) { background: #f2f6fb; }
+  body  { font-family: Arial, sans-serif; margin: 2rem; color: #333; }
+  h1    { color: #1F3864; }
+  table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+  th    { background: #065a82; color: white; padding: .5rem 1rem; text-align: left; }
+  td    { padding: .5rem 1rem; border-bottom: 1px solid #ddd; }
+  tr:nth-child(even) { background: #f5f5f5; }
   .won  { color: #1E6B3C; font-weight: bold; }
   .lost { color: #7B1F1F; }
-  .note { color: #555; }
   .no-results { color: #888; font-style: italic; margin-top: 1rem; }
-  .error { color: #c0392b; background: #fdf2f2; padding: .75rem; }
+  .error      { color: #c0392b; background: #fdf2f2; padding: .75rem; }
 </style>
 </head>
 <body>
 
 <h1>Match Results</h1>
-<p class="note">Every match, who played, the race each player had to reach, and who won.</p>
+<p>Every match, who played, the race each player had to reach, and who won.</p>
 
-<form method="get" action="read.php">
-  <label for="format">Game format:</label>
-  <select name="format" id="format">
-    <option value="">All formats</option>
-    <?php foreach ($formats as $f): ?>
-      <option value="<?= htmlspecialchars($f['FormatID']) ?>"
-        <?= ((int)$f['FormatID'] === (int)$formatId) ? 'selected' : '' ?>>
-        <?= htmlspecialchars($f['FormatName']) ?>
-      </option>
-    <?php endforeach; ?>
-  </select>
-  <button type="submit">Filter</button>
+<!-- HTML form for the filter -->
+<form method="GET">
+  <label>Game format:
+    <select name="format" onchange="this.form.submit()">
+      <option value="all">All formats</option>
+      <?php foreach ($formats as $f): ?>
+        <option value="<?= htmlspecialchars($f['FormatID']) ?>"
+          <?= ($f['FormatID'] == $filter) ? 'selected' : '' ?>>
+          <?= htmlspecialchars($f['FormatName']) ?>
+        </option>
+      <?php endforeach; ?>
+    </select>
+  </label>
 </form>
 
 <?php if (isset($error)): ?>
@@ -116,24 +119,29 @@ try {
     </thead>
     <tbody>
       <?php foreach ($results as $row): ?>
+        <?php
+          // Date formatting: '2026-10-03 13:00:00' -> 'Oct 03, 2026 1:00 PM'
+          $dt = new DateTime($row['MatchDate']);
+          $nice_date = $dt->format('M d, Y g:i A');
+
+          // Result: the winner is the player who reached their race
+          $result = $row['Won'] ? 'Won' : 'Lost';
+          $class  = match ($result) {
+              'Won'   => 'won',
+              'Lost'  => 'lost',
+              default => '',
+          };
+        ?>
         <tr>
           <td><?= htmlspecialchars($row['MatchID']) ?></td>
-          <td><?= htmlspecialchars((new DateTime($row['MatchDate']))->format('M d, Y g:i A')) ?></td>
+          <td><?= htmlspecialchars($nice_date) ?></td>
           <td><?= htmlspecialchars($row['FormatName']) ?></td>
           <td><?= htmlspecialchars($row['TableNumber'] ?? '—') ?></td>
           <td><?= htmlspecialchars($row['Location']) ?></td>
-          <td><?= htmlspecialchars($row['Player']) ?></td>
+          <td><?= htmlspecialchars($row['FirstName'] . ' ' . $row['LastName']) ?></td>
           <td><?= htmlspecialchars($row['RaceTo']) ?></td>
           <td><?= htmlspecialchars($row['GamesWon']) ?></td>
-          <?php
-            // Result badge: CSS class based on the value
-            $class = match ($row['Result']) {
-                'Won'   => 'won',
-                'Lost'  => 'lost',
-                default => '',
-            };
-          ?>
-          <td class="<?= $class ?>"><?= htmlspecialchars($row['Result']) ?></td>
+          <td class="<?= $class ?>"><?= htmlspecialchars($result) ?></td>
         </tr>
       <?php endforeach; ?>
     </tbody>

@@ -16,12 +16,12 @@ SELECT m.MatchID,
        CONCAT(p.FirstName, ' ', p.LastName) AS Player,
        mr.RaceTo,
        mr.GamesWon,
-       CASE WHEN mr.GamesWon = mr.RaceTo THEN 'Won' ELSE 'Lost' END AS Result
+       mr.GamesWon = mr.RaceTo AS Won          -- 1 = won, 0 = lost
 FROM Matches m
 INNER JOIN Formats f       ON m.FormatID = f.FormatID
 INNER JOIN MatchResults mr ON m.MatchID  = mr.MatchID
 INNER JOIN Players p       ON mr.PlayerID = p.PlayerID
-ORDER BY m.MatchDate, m.MatchID, Result DESC;
+ORDER BY m.MatchDate, m.MatchID, Won DESC;
 
 -- Q2: Objective 6 — Show every rating change and the match (or manual adjustment) that caused it
 --     (INNER JOIN + LEFT JOIN)
@@ -30,8 +30,8 @@ SELECT CONCAT(p.FirstName, ' ', p.LastName) AS Player,
        rh.OldRating,
        rh.NewRating,
        rh.NewRating - rh.OldRating AS RatingChange,
-       CASE WHEN m.MatchID IS NULL THEN 'Manual adjustment'
-            ELSE CONCAT('Match #', m.MatchID, ' (', f.FormatName, ')') END AS Source
+       -- CONCAT returns NULL when there is no match, so COALESCE shows the fallback text
+       COALESCE(CONCAT('Match #', m.MatchID, ' (', f.FormatName, ')'), 'Manual adjustment') AS Source
 FROM RatingHistory rh
 INNER JOIN Players p ON rh.PlayerID = p.PlayerID
 LEFT  JOIN Matches m ON rh.MatchID  = m.MatchID
@@ -43,7 +43,7 @@ ORDER BY Player, rh.ChangedAt;
 SELECT CONCAT(p.FirstName, ' ', p.LastName) AS Player,
        p.FargoRating,
        COUNT(mr.MatchID)                                          AS MatchesPlayed,
-       SUM(CASE WHEN mr.GamesWon = mr.RaceTo THEN 1 ELSE 0 END)   AS MatchesWon,
+       COALESCE(SUM(mr.GamesWon = mr.RaceTo), 0)                  AS MatchesWon,
        COALESCE(SUM(mr.GamesWon), 0)                              AS TotalGamesWon
 FROM Players p
 LEFT JOIN MatchResults mr ON p.PlayerID = mr.PlayerID
@@ -73,8 +73,7 @@ SELECT m.MatchID,
        hc.HigherRace  AS ChartHigherRace,
        lr.RaceTo      AS LowerRacePlayed,
        hc.LowerRace   AS ChartLowerRace,
-       CASE WHEN hr.RaceTo = hc.HigherRace AND lr.RaceTo = hc.LowerRace
-            THEN 'OK' ELSE 'Check' END AS FollowsChart
+       (hr.RaceTo = hc.HigherRace AND lr.RaceTo = hc.LowerRace) AS FollowsChart  -- 1 = yes
 FROM Matches m
 INNER JOIN Formats f       ON m.FormatID  = f.FormatID
 INNER JOIN MatchResults hr ON m.MatchID   = hr.MatchID
@@ -105,11 +104,11 @@ ORDER BY MatchesPlayed DESC;
 --     (GROUP BY · COUNT, SUM · HAVING)
 SELECT CONCAT(p.FirstName, ' ', p.LastName)                     AS Player,
        COUNT(mr.MatchID)                                        AS MatchesPlayed,
-       SUM(CASE WHEN mr.GamesWon = mr.RaceTo THEN 1 ELSE 0 END) AS MatchesWon
+       SUM(mr.GamesWon = mr.RaceTo)                             AS MatchesWon
 FROM Players p
 INNER JOIN MatchResults mr ON p.PlayerID = mr.PlayerID
 GROUP BY p.PlayerID, p.FirstName, p.LastName
-HAVING SUM(CASE WHEN mr.GamesWon = mr.RaceTo THEN 1 ELSE 0 END) >= 2
+HAVING SUM(mr.GamesWon = mr.RaceTo) >= 2
 ORDER BY MatchesWon DESC, Player;
 
 -- Q8: Objective 2 — Show players who have won more total games than the average player

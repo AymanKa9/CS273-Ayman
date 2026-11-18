@@ -17,7 +17,7 @@ Objective numbers refer to the Mission Objectives in `domain/README.md`.
 
 **Q2 — Rating history.** RatingHistory only stores IDs, so it joins Players on `PlayerID` for names. It uses a LEFT JOIN to Matches because manual adjustments have no match (`MatchID` is NULL). It shows which match moved each rating up or down.
 
-**Q3 — Player activity.** A LEFT JOIN from Players to MatchResults on `PlayerID` keeps players with no matches, and they show 0. Emma Cole and Marcus Reed have signed up but haven't played.
+**Q3 — Player activity.** A LEFT JOIN from Players to MatchResults on `PlayerID` keeps players with no matches, and they show 0. Emma Cole has signed up but hasn't played.
 
 **Q4 — Tournament schedule.** Tournaments joins Matches on `TournamentID`, and Matches joins Formats on `FormatID`. It gives a director the full schedule of the Fall 9-Ball Open with times and table assignments.
 
@@ -45,6 +45,6 @@ Objective numbers refer to the Mission Objectives in `domain/README.md`.
 
 **Q10 — Rating ranges of tournament players.** The IN subquery finds every player who played a tournament match, and GROUP BY summarizes their rating history. Grace Kim had the most updates (4). Sara Bennett is at her highest rating (450).
 
-**Q11 — Above-average ratings.** The inner query returns one value, the league average (530). The outer query keeps players above it: Nadia (700), Grace (610) and Omar (600).
+**Q11 — Above-average ratings.** The inner query returns one value, the league average (534, unrated players ignored). The outer query keeps players above it: Nadia (700), Grace (610) and Omar (600).
 
-**Q12 — Players who never played.** The inner query lists every `PlayerID` in MatchResults, and NOT IN keeps players who aren't in that list. Emma Cole and Marcus Reed haven't played, so the league can contact them using the email and phone shown.
+**Q12 — Players who never played.** The inner query lists every `PlayerID` in MatchResults, and NOT IN keeps players who aren't in that list. Emma Cole hasn't played, so the league can contact her using the email and phone shown.

@@ -97,34 +97,34 @@ VALUES
 
 
 -- ══════════════════════════════════════════════
--- TRANSACTION 1: Successful player registration
--- Registering a rated player takes two steps: add the player AND log their
--- starting rating in RatingHistory. Both must succeed or neither should
--- happen; otherwise a player could exist with a rating that has no history.
+-- TRANSACTION 1: Successful rating update (COMMIT)
+-- After match 5, Luis Ortega's rating drops from 520 to 516.
+-- Two steps: log the change in RatingHistory AND update Players.
+-- Both must succeed or neither should happen; otherwise the history
+-- and the player's current rating would disagree.
 -- ══════════════════════════════════════════════
 START TRANSACTION;
-INSERT INTO Players (FirstName, LastName, FargoRating, Phone, Email)
-VALUES ('Marcus', 'Reed', 500, '573-555-0149', 'marcus.reed@email.com');
 INSERT INTO RatingHistory (PlayerID, MatchID, OldRating, NewRating, ChangedAt)
-VALUES (LAST_INSERT_ID(), NULL, NULL, 500, '2026-11-09 18:00:00');
-COMMIT;
-SELECT 'Marcus Reed registered with a starting rating of 500' AS Result;
+VALUES (3, 5, 520, 516, '2026-10-14 21:00:00');
+UPDATE Players
+SET    FargoRating = 516
+WHERE  PlayerID = 3;
+COMMIT;  -- Both changes are now permanent
+SELECT FirstName, LastName, FargoRating      -- Luis now shows 516
+FROM Players
+WHERE PlayerID = 3;
 
 -- ══════════════════════════════════════════════
 -- TRANSACTION 2: Intentional ROLLBACK
--- Scheduling a tournament match takes two steps: add the match AND add both
--- players' rows in MatchResults. Nadia withdrew from the Thanksgiving
--- Shootout before the draw was final, so the whole booking is undone.
+-- The director meant to fix only Nadia's rating (PlayerID = 6),
+-- but the WHERE clause was too broad and changed every player.
+-- ROLLBACK undoes the mistake before it becomes permanent.
 -- ══════════════════════════════════════════════
 START TRANSACTION;
-INSERT INTO Matches (TournamentID, FormatID, MatchDate, Location, TableNumber)
-VALUES (3, 3, '2026-11-27 12:00:00', 'Cue Masters, Hannibal MO', 1);
-SET @NewMatchID = LAST_INSERT_ID();   -- the MatchID just created
-INSERT INTO MatchResults (MatchID, PlayerID, RaceTo, GamesWon)
-VALUES (@NewMatchID, 6, 6, 0),   -- Nadia 700 vs Tom 380 (10-Ball, gap 320)
-       (@NewMatchID, 5, 4, 0);
--- Nadia withdrew. Don't keep a half-scheduled match.
-ROLLBACK;
-SELECT COUNT(*) AS ThanksgivingMatches   -- 0: the ROLLBACK undid both INSERTs
-FROM Matches
-WHERE TournamentID = 3;
+UPDATE Players
+SET    FargoRating = 710
+WHERE  PlayerID > 0;          -- mistake: should have been PlayerID = 6
+ROLLBACK;  -- All ratings go back to what they were
+SELECT FirstName, LastName, FargoRating      -- Nadia is still 700, Sara still 450...
+FROM Players
+ORDER BY PlayerID;
