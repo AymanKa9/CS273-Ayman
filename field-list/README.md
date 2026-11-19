@@ -41,7 +41,7 @@ A tournament event that groups a set of matches.
 | `Location` | `VARCHAR(100)` | NOT NULL | — | |
 
 ## Table 4: `Matches`
-One scheduled match: when, where, on which table, in which format and tournament.
+One match: when, where, on which table, in which format and tournament, and whether it is scheduled, completed or cancelled.
 
 | Field | MySQL Type | NULL | Default | Constraints / Notes |
 | :--- | :--- | :--- | :--- | :--- |
@@ -50,6 +50,7 @@ One scheduled match: when, where, on which table, in which format and tournament
 | `FormatID` | `INT UNSIGNED` | NOT NULL | — | FK → `Formats.FormatID` |
 | `MatchDate` | `DATETIME` | NOT NULL | — | |
 | `Location` | `VARCHAR(100)` | NOT NULL | — | |
+| `Status` | `ENUM('Scheduled','Completed','Cancelled')` | NOT NULL | 'Scheduled' | Only these three values are allowed |
 | `TableNumber` | `TINYINT UNSIGNED` | NULL | NULL | CHECK ≥ 1; NULL = not assigned yet |
 
 ## Table 5: `MatchResults` (linking table, Players ⟷ Matches)
@@ -131,3 +132,4 @@ Every FK has exactly the same type as the PK it references: all IDs are `INT UNS
 | Renamed all fields to TableName + ID / PascalCase | One consistent naming rule: `PlayerID`, `FirstName`, ... |
 | Renamed `Player_Matches` to `MatchResults` and gave it a composite PK `(MatchID, PlayerID)` | Linking tables are named after the relationship and use a composite PK of their two FKs |
 | All IDs are `INT UNSIGNED` | IDs are never negative, and every FK must match its PK's type |
+| Added `Status` to `Matches` | The app needs to show upcoming and cancelled matches, not only completed ones, and filter by status |

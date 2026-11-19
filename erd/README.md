@@ -33,8 +33,8 @@ A player plays many matches over a season, and every match has more than one pla
 Each MatchResults row is about exactly one player (`PlayerID` NOT NULL), but one player has many match rows. A player can have zero rows if they just signed up.
 **If modeled differently:** as 1:1, a player could only ever record one match. If MatchResults were mandatory, a new player could not be added until they had already played.
 
-### Matches → MatchResults — **1:N** (Matches mandatory one · MatchResults mandatory many)
-Each row belongs to exactly one match (`MatchID` NOT NULL), and one match has several player rows (two in practice). A match without players makes no sense, so both sides are mandatory.
+### Matches → MatchResults — **1:N** (Matches mandatory one · MatchResults optional many)
+Each row belongs to exactly one match (`MatchID` NOT NULL), and a completed match has two player rows. A scheduled match can exist before the players are drawn, and a cancelled match may never get any, so the MatchResults side is optional (zero or many).
 **If modeled differently:** as 1:1, a match could store only one player's score, so the opponent's race and result would have nowhere to go. The composite primary key `(MatchID, PlayerID)` stops the same player being entered twice in one match.
 
 ### Formats → Matches — **1:N** (Formats mandatory one · Matches optional many)
@@ -99,4 +99,4 @@ A close second was the **handicap**. Phase 2 had a `handicap_at_match` number fr
 - **Removed `is_winner` from MatchResults.** The winner can be worked out from the data (`GamesWon = RaceTo`), so storing it could disagree with the score. This is the same reason `games_lost` was removed.
 - **Added relationship verb labels** to every line in the ERD (for example, Players *plays in* MatchResults).
 - **Renamed for consistent naming.** Fields are now TableName + ID / PascalCase (`PlayerID`, `FargoRating`). The linking table Player_Matches is now **MatchResults**, named after what the relationship represents, with the composite primary key `(MatchID, PlayerID)` instead of its own ID column.
-
+- **Added `Status` to Matches** (`Scheduled`, `Completed`, `Cancelled`) so the app can show upcoming and cancelled matches and filter by status. Because a scheduled or cancelled match has no players yet, the MatchResults side of Matches → MatchResults changed from mandatory to optional.

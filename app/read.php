@@ -2,31 +2,41 @@
 // read.php -- Phase 7a read page: match results
 // CS 273 Phase 7   Ayman Kaouch   Pool League Fargo Rating Tracker
 // Objective 4 — Record individual match schedules, table assignments, and final scores.
-// JOIN query: Matches → Formats, Matches → MatchResults → Players (Phase 5A Q1).
+// JOIN query: Matches → Formats, Matches → MatchResults → Players (Phase 5A Q1),
+// filtered by game format and match status.
 
 // ── 1. Connect ──────────────────────────────────────────────
 require __DIR__ . '/db.php';
 
 // ── 2. Query ────────────────────────────────────────────────
-// Use one of my Phase 5A JOIN queries (Q1)
-$select = 'SELECT m.MatchID,
-                  m.MatchDate,
-                  f.FormatName,
-                  m.TableNumber,
-                  m.Location,
-                  p.FirstName,
-                  p.LastName,
-                  mr.RaceTo,
-                  mr.GamesWon,
-                  mr.GamesWon = mr.RaceTo AS Won
-           FROM Matches m
-           INNER JOIN Formats f       ON m.FormatID  = f.FormatID
-           INNER JOIN MatchResults mr ON m.MatchID   = mr.MatchID
-           INNER JOIN Players p       ON mr.PlayerID = p.PlayerID';
-$order = ' ORDER BY m.MatchDate, m.MatchID, Won DESC';
+// Every match with its players (Phase 5A Q1). LEFT JOINs keep scheduled and
+// cancelled matches, which have no players or results yet.
+// Two optional filters, both passed as ? parameters (never concatenated):
+//   (? = 'all' OR m.FormatID = ?)  → when the filter is 'all', every row passes.
+$sql = 'SELECT m.MatchID,
+               m.MatchDate,
+               f.FormatName,
+               m.TableNumber,
+               m.Location,
+               m.Status,
+               p.FirstName,
+               p.LastName,
+               mr.RaceTo,
+               mr.GamesWon,
+               mr.GamesWon = mr.RaceTo AS Won
+        FROM Matches m
+        INNER JOIN Formats f      ON m.FormatID  = f.FormatID
+        LEFT JOIN MatchResults mr ON m.MatchID   = mr.MatchID
+        LEFT JOIN Players p       ON mr.PlayerID = p.PlayerID
+        WHERE (? = \'all\' OR m.FormatID = ?)
+          AND (? = \'all\' OR m.Status   = ?)
+        ORDER BY m.MatchDate, m.MatchID, Won DESC';
+
+// Whitelist of allowed status values (from the ENUM in schema.sql)
+$allowed_statuses = ['Scheduled', 'Completed', 'Cancelled'];
 
 try {
-    // Formats for the dropdown, and the list of allowed filter values
+    // Formats for the dropdown, and the list of allowed format values
     $stmt = $pdo->prepare('SELECT FormatID, FormatName FROM Formats ORDER BY FormatName');
     $stmt->execute();
     $formats = $stmt->fetchAll();
@@ -36,17 +46,17 @@ try {
         $allowed_formats[] = $f['FormatID'];
     }
 
-    // Get filter from query string, default to 'all'
-    // NEVER concatenate the filter into the SQL: it is passed as a ? parameter
+    // Get the filters from the query string, default to 'all'.
+    // Anything not in a whitelist becomes 'all'.
     $filter = $_GET['format'] ?? 'all';
-    if ($filter === 'all' || !in_array($filter, $allowed_formats)) {
+    if (!in_array($filter, $allowed_formats)) {
         $filter = 'all';
-        $sql    = $select . $order;
-        $params = [];
-    } else {
-        $sql    = $select . ' WHERE m.FormatID = ?' . $order;
-        $params = [$filter];
     }
+    $status = $_GET['status'] ?? 'all';
+    if (!in_array($status, $allowed_statuses, true)) {
+        $status = 'all';
+    }
+    $params = [$filter, $filter, $status, $status];
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
@@ -81,6 +91,10 @@ try {
   tr:nth-child(even) { background: #f5f5f5; }
   .won  { color: #1E6B3C; font-weight: bold; }
   .lost { color: #7B1F1F; }
+  .badge { padding: .15rem .5rem; border-radius: 4px; font-size: .85rem; }
+  .badge-completed { background: #d4edda; color: #155724; }
+  .badge-scheduled { background: #d6e4f0; color: #1F3864; }
+  .badge-cancelled { background: #e2e3e5; color: #555; }
   .no-results { color: #888; font-style: italic; margin-top: 1rem; }
   .error      { color: #c0392b; background: #fdf2f2; padding: .75rem; }
   .success    { color: #1E6B3C; background: #eafaf1; padding: .75rem; }
@@ -90,7 +104,7 @@ try {
 <body>
 
 <h1>Match Results</h1>
-<p>Every match, who played, the race each player had to reach, and who won.</p>
+<p>Every match: when and where it is played, its status, who played, the race each player had to reach, and who won.</p>
 
 <?php if (isset($_GET['added']) && $_GET['added'] === '1'): ?>
   <p class="success">Record added.</p>
@@ -98,7 +112,7 @@ try {
 
 <p><a href="insert.php">+ Add a player</a></p>
 
-<!-- HTML form for the filter -->
+<!-- HTML form for the filters -->
 <form method="GET">
   <label>Game format:
     <select name="format" onchange="this.form.submit()">
@@ -107,6 +121,18 @@ try {
         <option value="<?= htmlspecialchars($f['FormatID']) ?>"
           <?= ($f['FormatID'] == $filter) ? 'selected' : '' ?>>
           <?= htmlspecialchars($f['FormatName']) ?>
+        </option>
+      <?php endforeach; ?>
+    </select>
+  </label>
+  &nbsp;
+  <label>Status:
+    <select name="status" onchange="this.form.submit()">
+      <option value="all">All statuses</option>
+      <?php foreach ($allowed_statuses as $s): ?>
+        <option value="<?= htmlspecialchars($s) ?>"
+          <?= ($s === $status) ? 'selected' : '' ?>>
+          <?= htmlspecialchars($s) ?>
         </option>
       <?php endforeach; ?>
     </select>
@@ -127,6 +153,7 @@ try {
         <th>Format</th>
         <th>Table</th>
         <th>Location</th>
+        <th>Status</th>
         <th>Player</th>
         <th>Race To</th>
         <th>Games Won</th>
@@ -140,13 +167,29 @@ try {
           $dt = new DateTime($row['MatchDate']);
           $nice_date = $dt->format('M d, Y g:i A');
 
-          // Result: the winner is the player who reached their race
-          $result = $row['Won'] ? 'Won' : 'Lost';
-          $class  = match ($result) {
+          // Status badge: CSS class based on the value
+          $status_class = match ($row['Status']) {
+              'Completed' => 'badge-completed',
+              'Scheduled' => 'badge-scheduled',
+              'Cancelled' => 'badge-cancelled',
+              default     => '',
+          };
+
+          // Result: only a completed match has a winner
+          // (the winner is the player who reached their race)
+          if ($row['Status'] === 'Completed') {
+              $result = $row['Won'] ? 'Won' : 'Lost';
+          } else {
+              $result = '—';
+          }
+          $class = match ($result) {
               'Won'   => 'won',
               'Lost'  => 'lost',
               default => '',
           };
+
+          // Players aren't drawn yet for scheduled/cancelled matches
+          $player = ($row['FirstName'] !== null) ? $row['FirstName'] . ' ' . $row['LastName'] : 'TBD';
         ?>
         <tr>
           <td><?= htmlspecialchars($row['MatchID']) ?></td>
@@ -154,9 +197,10 @@ try {
           <td><?= htmlspecialchars($row['FormatName']) ?></td>
           <td><?= htmlspecialchars($row['TableNumber'] ?? '—') ?></td>
           <td><?= htmlspecialchars($row['Location']) ?></td>
-          <td><?= htmlspecialchars($row['FirstName'] . ' ' . $row['LastName']) ?></td>
-          <td><?= htmlspecialchars($row['RaceTo']) ?></td>
-          <td><?= htmlspecialchars($row['GamesWon']) ?></td>
+          <td><span class="badge <?= $status_class ?>"><?= htmlspecialchars($row['Status']) ?></span></td>
+          <td><?= htmlspecialchars($player) ?></td>
+          <td><?= htmlspecialchars($row['RaceTo'] ?? '—') ?></td>
+          <td><?= htmlspecialchars($row['GamesWon'] ?? '—') ?></td>
           <td class="<?= $class ?>"><?= htmlspecialchars($result) ?></td>
         </tr>
       <?php endforeach; ?>

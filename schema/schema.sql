@@ -64,6 +64,7 @@ CREATE TABLE Matches (
   FormatID      INT UNSIGNED  NOT NULL,
   MatchDate     DATETIME      NOT NULL,
   Location      VARCHAR(100)  NOT NULL,
+  Status        ENUM('Scheduled','Completed','Cancelled') NOT NULL DEFAULT 'Scheduled',
   -- Optional fields
   TournamentID  INT UNSIGNED  NULL,             -- NULL = regular league night
   TableNumber   TINYINT UNSIGNED NULL,          -- NULL = table not assigned yet

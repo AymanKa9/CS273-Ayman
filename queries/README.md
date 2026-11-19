@@ -19,7 +19,7 @@ Objective numbers refer to the Mission Objectives in `domain/README.md`.
 
 **Q3 — Player activity.** A LEFT JOIN from Players to MatchResults on `PlayerID` keeps players with no matches, and they show 0. Emma Cole has signed up but hasn't played.
 
-**Q4 — Tournament schedule.** Tournaments joins Matches on `TournamentID`, and Matches joins Formats on `FormatID`. It gives a director the full schedule of the Fall 9-Ball Open with times and table assignments.
+**Q4 — Tournament schedule.** Tournaments joins Matches on `TournamentID`, and Matches joins Formats on `FormatID`. It gives a director every tournament's schedule with times and table assignments: the 4 played Fall 9-Ball Open matches, plus the cancelled Halloween match and the upcoming Thanksgiving and Winter matches.
 
 **Q5 — Handicap check.** MatchResults and Players are joined twice, once per opponent, so both ratings are on the same row. HandicapChart is joined on `FormatID` and on the rating gap falling between `MinGap` and `MaxGap`. All 7 matches between rated players followed the chart.
 
@@ -41,7 +41,7 @@ Objective numbers refer to the Mission Objectives in `domain/README.md`.
 
 **Q8 — Above-average game totals.** The subquery divides all games won by the number of players who played to get the average per player (62 ÷ 7 = 8.9), and HAVING compares each player to it instead of a hard-coded number. Omar, Grace and Nadia win the most games.
 
-**Q9 — Tournament workload.** The LEFT JOIN keeps tournaments with no matches, and `COUNT(m.MatchID)` returns 0 for them. Only the Fall 9-Ball Open has matches (4, on 2 tables). The other 4 tournaments have none scheduled yet.
+**Q9 — Tournament workload.** The LEFT JOIN keeps tournaments with no matches, and `COUNT(m.MatchID)` returns 0 for them. The Fall 9-Ball Open had 4 matches on 2 tables, Thanksgiving has 2 scheduled, and the New Year Championship shows 0 because nothing is scheduled yet.
 
 **Q10 — Rating ranges of tournament players.** The IN subquery finds every player who played a tournament match, and GROUP BY summarizes their rating history. Grace Kim had the most updates (4). Sara Bennett is at her highest rating (450).
 

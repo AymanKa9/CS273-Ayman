@@ -50,17 +50,23 @@ VALUES
 
 -- ── 5. Child table: Matches ────────────────────────────────
 -- (Formats and Tournaments must exist before this)
--- Matches 5-8 are league nights, so TournamentID is NULL.
-INSERT INTO Matches (TournamentID, FormatID, MatchDate, Location, TableNumber)
+-- Matches 1-8 were played (Completed). Matches 5-8 are league nights, so TournamentID is NULL.
+-- Matches 9-11 are upcoming tournament matches (Scheduled); players are not drawn yet.
+-- Match 12 was Cancelled: the Halloween Classic did not get enough players.
+INSERT INTO Matches (TournamentID, FormatID, MatchDate, Location, TableNumber, Status)
 VALUES
-(1,    2, '2026-10-03 13:00:00', 'Cue Masters, Hannibal MO', 1),
-(1,    2, '2026-10-03 13:00:00', 'Cue Masters, Hannibal MO', 2),
-(1,    2, '2026-10-03 15:00:00', 'Cue Masters, Hannibal MO', 1),
-(1,    2, '2026-10-04 12:00:00', 'Cue Masters, Hannibal MO', 1),
-(NULL, 1, '2026-10-14 19:00:00', 'Rack Room, Quincy IL',     3),
-(NULL, 1, '2026-10-14 19:00:00', 'Rack Room, Quincy IL',     4),
-(NULL, 3, '2026-10-21 19:30:00', 'Rack Room, Quincy IL',     2),
-(NULL, 2, '2026-10-28 19:00:00', 'Cue Masters, Hannibal MO', 1);
+(1,    2, '2026-10-03 13:00:00', 'Cue Masters, Hannibal MO', 1,    'Completed'),
+(1,    2, '2026-10-03 13:00:00', 'Cue Masters, Hannibal MO', 2,    'Completed'),
+(1,    2, '2026-10-03 15:00:00', 'Cue Masters, Hannibal MO', 1,    'Completed'),
+(1,    2, '2026-10-04 12:00:00', 'Cue Masters, Hannibal MO', 1,    'Completed'),
+(NULL, 1, '2026-10-14 19:00:00', 'Rack Room, Quincy IL',     3,    'Completed'),
+(NULL, 1, '2026-10-14 19:00:00', 'Rack Room, Quincy IL',     4,    'Completed'),
+(NULL, 3, '2026-10-21 19:30:00', 'Rack Room, Quincy IL',     2,    'Completed'),
+(NULL, 2, '2026-10-28 19:00:00', 'Cue Masters, Hannibal MO', 1,    'Completed'),
+(3,    3, '2026-11-27 12:00:00', 'Cue Masters, Hannibal MO', 1,    'Scheduled'),
+(3,    3, '2026-11-27 12:00:00', 'Cue Masters, Hannibal MO', 2,    'Scheduled'),
+(4,    4, '2026-12-12 13:00:00', 'Rack Room, Quincy IL',     NULL, 'Scheduled'),
+(2,    1, '2026-10-31 18:00:00', 'Rack Room, Quincy IL',     1,    'Cancelled');
 
 -- ── 6. Linking table: MatchResults ─────────────────────────
 -- (Matches and Players must exist before this)

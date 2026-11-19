@@ -38,3 +38,6 @@ All FKs use **ON UPDATE CASCADE**, so if an ID ever changes, every reference fol
 - MatchResults' composite PK `(MatchID, PlayerID)`: a player can appear only once in a match.
 
 Rating columns are `SMALLINT`, not `UNSIGNED`, so a rating *change* (`NewRating - OldRating`) can be negative without a MySQL error.
+
+## Match status
+`Matches.Status` is an `ENUM('Scheduled','Completed','Cancelled')` with default `'Scheduled'`. A new match starts as scheduled; MySQL rejects any other value. Only completed matches have rows in MatchResults, so every results query (wins, games won, handicap check) only ever sees completed matches.

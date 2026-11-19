@@ -4,12 +4,13 @@
 | --- | --- |
 | `db.php` | PDO connection (ERRMODE_EXCEPTION, FETCH_ASSOC, EMULATE_PREPARES = false). Every page requires it. |
 | `insert.php` | Add Player form (Objective 1). Validates the input, runs a prepared INSERT into Players, then redirects to `read.php?added=1`. |
-| `read.php` | Match Results page (Objective 4). JOINs Matches, Formats, MatchResults and Players and shows every match, both players, their race, games won and the winner. |
+| `read.php` | Match Results page (Objective 4), with filters for game format and match status. JOINs Matches, Formats, MatchResults and Players and shows every match, both players, their race, games won and the winner. |
 
 **read.php follows the Phase 7a checklist:**
 - Runs a 4-table JOIN with a prepared statement (`prepare` → `execute` → `fetchAll`).
 - Shows results in a `<table>` with `<thead>` headers and one `<tr>` per row in `<tbody>`.
-- Optional filter by game format: the value must be in the whitelist of real FormatIDs, and it is passed as a `?` parameter, never concatenated into the SQL.
+- Two optional filters, **game format** and **match status** (Scheduled / Completed / Cancelled). Each value must be in a whitelist (real FormatIDs; the three status values), and both are passed as `?` parameters, never concatenated into the SQL.
+- Scheduled and cancelled matches show **TBD** for players and **—** for the result, with a colored status badge.
 - Shows "No records found." when there are no rows (try the One Pocket filter).
 - Every database value is wrapped in `htmlspecialchars()` to prevent XSS.
 - Database errors are logged, and the user sees a generic message.
