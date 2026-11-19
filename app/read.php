@@ -51,10 +51,18 @@ try {
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $results = $stmt->fetchAll();
+
+    // Player roster (newest first), so a player added on insert.php shows up here
+    $stmt = $pdo->prepare('SELECT PlayerID, FirstName, LastName, FargoRating, Phone, Email
+                           FROM Players
+                           ORDER BY PlayerID DESC');
+    $stmt->execute();
+    $players = $stmt->fetchAll();
 } catch (PDOException $e) {
     error_log($e->getMessage());
     $formats = [];
     $results = [];
+    $players = [];
     $error   = 'Could not load match results. Please try again.';
 }
 ?>
@@ -75,12 +83,20 @@ try {
   .lost { color: #7B1F1F; }
   .no-results { color: #888; font-style: italic; margin-top: 1rem; }
   .error      { color: #c0392b; background: #fdf2f2; padding: .75rem; }
+  .success    { color: #1E6B3C; background: #eafaf1; padding: .75rem; }
+  h2          { color: #1F3864; margin-top: 2.5rem; }
 </style>
 </head>
 <body>
 
 <h1>Match Results</h1>
 <p>Every match, who played, the race each player had to reach, and who won.</p>
+
+<?php if (isset($_GET['added']) && $_GET['added'] === '1'): ?>
+  <p class="success">Record added.</p>
+<?php endif; ?>
+
+<p><a href="insert.php">+ Add a player</a></p>
 
 <!-- HTML form for the filter -->
 <form method="GET">
@@ -142,6 +158,34 @@ try {
           <td><?= htmlspecialchars($row['RaceTo']) ?></td>
           <td><?= htmlspecialchars($row['GamesWon']) ?></td>
           <td class="<?= $class ?>"><?= htmlspecialchars($result) ?></td>
+        </tr>
+      <?php endforeach; ?>
+    </tbody>
+  </table>
+<?php endif; ?>
+
+<h2>Players</h2>
+<?php if (empty($players)): ?>
+  <p class="no-results">No records found.</p>
+<?php else: ?>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Fargo Rating</th>
+        <th>Phone</th>
+        <th>Email</th>
+      </tr>
+    </thead>
+    <tbody>
+      <?php foreach ($players as $pl): ?>
+        <tr>
+          <td><?= htmlspecialchars($pl['PlayerID']) ?></td>
+          <td><?= htmlspecialchars($pl['FirstName'] . ' ' . $pl['LastName']) ?></td>
+          <td><?= htmlspecialchars($pl['FargoRating'] ?? 'Not rated') ?></td>
+          <td><?= htmlspecialchars($pl['Phone'] ?? '—') ?></td>
+          <td><?= htmlspecialchars($pl['Email'] ?? '—') ?></td>
         </tr>
       <?php endforeach; ?>
     </tbody>
